@@ -1,0 +1,61 @@
+{% extends 'base.html'%}
+{% load static %}
+{% block content %}
+
+<h2>📂 Payroll CSV Uploader</h2>
+
+{% for message in messages %}
+    <div class="message {{ message.tags }}" style="padding: 10px; margin-bottom: 15px; border: 1px solid; background-color: 
+        {% if message.tags == 'success' %}#d4edda; border-color: #c3e6cb; color: #155724; 
+        {% elif message.tags == 'error' %}#f8d7da; border-color: #f5c6cb; color: #721c24; 
+        {% else %}#fff3cd; border-color: #ffc720; color: #664d03;{% endif %}">
+        {{ message }}
+    </div>
+{% endfor %}
+
+<div class="upload-section">
+    <h3>Upload File</h3>
+    <form method="POST" enctype="multipart/form-data" action="{% url 'humanresource:payroll_upload'%}"> 
+        {% csrf_token%}
+        <label for="id_file">Select CSV File:</label>
+        <input type="file" id="id_file" name="payroll_file" accept=".csv" required>
+        
+        <button type="submit" style="margin-top: 10px;">Upload & Process Payroll</button>
+    </form>
+</div>
+
+<hr>
+
+<div class="history-section">
+    <h3>🕒 Upload History</h3>
+    {% if history %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date/Time</th>
+                    <th>File Name</th>
+                    <th>Uploaded By</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in history %}
+                <tr style="background-color: {% if item.status == 'Success' %}#e6ffe6{% else %}#ffe6e6{% endif %};">
+                    <td>{{ item.upload_time|date:"Y-m-d H:i" }}</td>
+                    <td>{{ item.file_name }}</td>
+                    <td>{{ item.uploaded_by }}</td>
+                    <td>
+                        <strong>{{ item.status }}</strong>
+                    </td>
+                    <td>{{ item.details|truncatechars:100 }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No upload history found.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

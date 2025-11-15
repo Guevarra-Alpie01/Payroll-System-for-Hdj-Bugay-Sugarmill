@@ -1,26 +1,36 @@
 {% extends 'base.html'%}
 {% load static %}
 {% block content %}
+
+{% for message in messages %}
+    <div class="message {{ message.tags }}" style="padding: 10px; margin-bottom: 10px; border: 1px solid; background-color: {% if message.tags == 'success' %}#d4edda; border-color: #c3e6cb; color: #155724;{% else %}#f8d7da; border-color: #f5c6cb; color: #721c24;{% endif %}">
+        {{ message }}
+    </div>
+{% endfor %}
+
+
 <form method="POST" action="{% url 'navigation_app:AddUser'%}"> 
     {% csrf_token%}
-            <label for="id_username">Username</label>
-            <input type="text" id="id_username" name="username" placeholder="username.." required>
+    <h3>Create New User Account</h3>
+    <label for="id_username">Username</label>
+    <input type="text" id="id_username" name="username" placeholder="username.." required>
 
-            <label for="id_password">Password</label>
-            <input type="password" id="id_password" name="password" placeholder="password.." required>
+    <label for="id_password">Password</label>
+    <input type="password" id="id_password" name="password" placeholder="password.." required>
 
-            <label for="id_role">Role</label>
-            <select id="id_role" name="role" required>
-                <option value="user">User</option>
-                <option value="hr">HR</option>
-                <option value="timekeeper">Timekeeper</option>
-            </select>
+    <label for="id_role">Role</label>
+    <select id="id_role" name="role" required>
+        <option value="Accounting">Accounting</option>
+        <option value="hr">HR</option>
+        <option value="timekeeper">Timekeeper</option>
+    </select>
 
-            <button type="submit">Create</button>
+    <button type="submit">Create User</button>
 </form>
 
 {% if users %}
-    <h3>Existing users</h3>
+    <hr>
+    <h3>Existing Users (Non-Admin)</h3>
     <table>
         <thead>
             <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
@@ -34,7 +44,7 @@
                     <form method="post" action="{% url 'navigation_app:AddUser' %}" style="display:inline">
                         {% csrf_token %}
                         <input type="hidden" name="delete_username" value="{{ u.username }}">
-                        <button type="submit">Delete</button>
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete user {{ u.username }}?');">Delete</button>
                     </form>
                 </td>
             </tr>

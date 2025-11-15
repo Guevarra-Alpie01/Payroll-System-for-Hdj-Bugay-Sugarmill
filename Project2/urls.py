@@ -24,5 +24,8 @@ from .import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('navigation_app.urls')),
+    path('humanresource/', include('humanresource.urls')),
+    path('timekeeper/', include('timekeeper.urls')),
+    path('accounting/', include('accounting.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
  

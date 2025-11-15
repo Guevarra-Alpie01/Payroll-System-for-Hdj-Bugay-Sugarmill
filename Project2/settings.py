@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'navigation_app',
+    'humanresource',
+    'timekeeper',
+    'accounting',
+
 ]
 
 MIDDLEWARE = [
