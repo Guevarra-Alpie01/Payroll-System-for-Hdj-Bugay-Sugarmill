@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard | Payroll System{% endblock title %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/admin_design.css' %}">
+{% endblock extra_head %}
+
+{% block content %}
+    <div class="admin-container">
+        
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1>Admin Dashboard</h1>
+            <p>Manage the payroll system and user access</p>
+        </div>
+
+        <!-- Admin Stats Section -->
+        <section class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">24</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👨‍💼</div>
+                <div class="stat-info">
+                    <div class="stat-label">Admins</div>
+                    <div class="stat-value">3</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚙️</div>
+                <div class="stat-info">
+                    <div class="stat-label">System Status</div>
+                    <div class="stat-value">Active</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-label">Payroll Cycles</div>
+                    <div class="stat-value">12</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Management Section -->
+        <section class="admin-management">
+            <h2>System Management</h2>
+            <div class="management-grid">
+                
+                <div class="management-card">
+                    <div class="card-icon">👤</div>
+                    <h3>User Management</h3>
+                    <p>Add, edit, and remove users from the system.</p>
+                    <a href="#" class="btn btn-primary">Manage Users</a>
+                </div>
+
+                <div class="management-card">
+                    <div class="card-icon">🔐</div>
+                    <h3>Permissions</h3>
+                    <p>Set user roles and access permissions.</p>
+                    <a href="#" class="btn btn-primary">Manage Permissions</a>
+                </div>
+
+                <div class="management-card">
+                    <div class="card-icon">🏢</div>
+                    <h3>Company Settings</h3>
+                    <p>Configure company details and policies.</p>
+                    <a href="#" class="btn btn-primary">Company Settings</a>
+                </div>
+
+                <div class="management-card">
+                    <div class="card-icon">📋</div>
+                    <h3>System Logs</h3>
+                    <p>View system activity and audit logs.</p>
+                    <a href="#" class="btn btn-primary">View Logs</a>
+                </div>
+
+                <div class="management-card">
+                    <div class="card-icon">💾</div>
+                    <h3>Backups</h3>
+                    <p>Create and manage system backups.</p>
+                    <a href="#" class="btn btn-primary">Manage Backups</a>
+                </div>
+
+                <div class="management-card">
+                    <div class="card-icon">📬</div>
+                    <h3>Reports</h3>
+                    <p>Generate admin reports and analytics.</p>
+                    <a href="#" class="btn btn-primary">View Reports</a>
+                </div>
+
+            </div>
+        </section>
+
+      
+
+    </div>
+    <a href="{% url 'navigation_app:AddUser' %}">go to add user</a>
+{% endblock content %}
+
+{% block extra_js %}
+    <script src="{% static 'js/admin.js' %}"></script>
+{% endblock extra_js %}

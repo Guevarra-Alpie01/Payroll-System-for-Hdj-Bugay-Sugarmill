@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>{% block title %}Payroll System{% endblock title %}</title>
+    
+    {# Link to your main navigation design CSS #}
+    <link rel="stylesheet" href="{% static 'css/navigation_design.css' %}">
+    <link rel="stylesheet" href="{% static 'css/login_design.css' %}">
+    
+    {# Block for page-specific styles or head content #}
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+
+    <header>
+        <nav class="main-nav"> 
+            <div class="nav-brand">
+                <a href="#"> 
+                    <strong>Payroll System</strong>
+                </a> 
+            </div>
+            
+            <div class="nav-links-container">
+                <ul class="nav-links nav-left">
+                    {# Admin Navigation #}
+                    {% if request.session.admin_id %}
+                        <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">Dashboard</a></li>
+                        <li><a href="{% url 'navigation_app:admin_home' %}" class="nav-link">Admin Panel</a></li>
+                        <li><a href="{% url 'navigation_app:AddUser' %}" class="nav-link">Manage Users</a></li>
+                        <li><a href="#" class="nav-link">Reports</a></li>
+
+                    {# User Navigation #}
+                    {% elif request.session.role == 'user' %}
+                        <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">Home</a></li>
+                        <li><a href="#" class="nav-link">My Payroll</a></li>
+                        <li><a href="#" class="nav-link">Leave Request</a></li>
+
+                    {# HR Navigation #}
+                    {% elif request.session.role == 'hr' %}
+                        <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">HR Dashboard</a></li>
+                        <li><a href="#" class="nav-link">Employee Management</a></li>
+                        <li><a href="#" class="nav-link">Leave Approvals</a></li>
+                        <li><a href="#" class="nav-link">Payroll</a></li>
+
+                    {# Timekeeper Navigation #}
+                    {% elif request.session.role == 'timekeeper' %}
+                        <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">Timekeeper Dashboard</a></li>
+                        <li><a href="#" class="nav-link">Attendance</a></li>
+                        <li><a href="#" class="nav-link">Time Records</a></li>
+                        <li><a href="#" class="nav-link">Reports</a></li>
+                    {% endif %}
+                </ul>
+
+                <ul class="nav-links nav-right">
+                    {% if request.session.admin_id or request.session.account_id %}
+                        <li class="nav-item-user">
+                            <a href="#" class="nav-link">
+                                Welcome, {{ request.session.username }} 
+                                {% if request.session.admin_id %}
+                                    (Admin)
+                                {% elif request.session.role %}
+                                    ({{ request.session.role|title }})
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item-auth">
+                            <a href="{% url 'navigation_app:logout' %}" class="nav-link">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item-auth">
+                            <a href="{% url 'navigation_app:login' %}" class="nav-link">Login</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <button class="nav-toggler" aria-label="Toggle navigation menu">
+                <span class="toggler-icon"></span>
+                <span class="toggler-icon"></span>
+                <span class="toggler-icon"></span>
+            </button>
+        </nav>
+    </header>
+    
+ 
+    <main class="container">
+        {% block content %}
+        {% endblock content %}
+    </main>
+
+    {% block extra_js %}{% endblock extra_js %}
+</body>
+</html>

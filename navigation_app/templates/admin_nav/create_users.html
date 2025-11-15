@@ -1,0 +1,46 @@
+{% extends 'base.html'%}
+{% load static %}
+{% block content %}
+<form method="POST" action="{% url 'navigation_app:AddUser'%}"> 
+    {% csrf_token%}
+            <label for="id_username">Username</label>
+            <input type="text" id="id_username" name="username" placeholder="username.." required>
+
+            <label for="id_password">Password</label>
+            <input type="password" id="id_password" name="password" placeholder="password.." required>
+
+            <label for="id_role">Role</label>
+            <select id="id_role" name="role" required>
+                <option value="user">User</option>
+                <option value="hr">HR</option>
+                <option value="timekeeper">Timekeeper</option>
+            </select>
+
+            <button type="submit">Create</button>
+</form>
+
+{% if users %}
+    <h3>Existing users</h3>
+    <table>
+        <thead>
+            <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.role }}</td>
+                <td>
+                    <form method="post" action="{% url 'navigation_app:AddUser' %}" style="display:inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_username" value="{{ u.username }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home | Payroll System{% endblock title %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/user_home_design.css' %}">
+{% endblock extra_head %}
+
+{% block content %}
+    <div class="homepage-container">
+        
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>Welcome to Payroll System</h1>
+                <p>Efficient, Secure, and Reliable Payroll Management</p>
+                {% if user.is_authenticated %}
+                    <div class="hero-buttons">
+                        <a href="#" class="btn btn-primary">Go to Dashboard</a>
+                        <a href="#" class="btn btn-secondary">View Reports</a>
+                    </div>
+                {% else %}
+                    <div class="hero-buttons">
+                        <a href="{% url 'navigation_app:login' %}" class="btn btn-primary">Login Now</a>
+                        <a href="#features" class="btn btn-secondary">Learn More</a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="hero-image">
+                <div class="hero-icon">📊</div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features-section">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Employee Management</h3>
+                    <p>Manage employee records, departments, and employment status with ease.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Salary Processing</h3>
+                    <p>Automate salary calculations, deductions, and bonus processing.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Attendance Tracking</h3>
+                    <p>Track employee attendance, leaves, and overtime with precision.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Comprehensive Reports</h3>
+                    <p>Generate detailed payroll reports, tax summaries, and analytics.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Secure & Compliant</h3>
+                    <p>Industry-standard security and full compliance with tax regulations.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Easy Configuration</h3>
+                    <p>Configure payment methods, company details, and system settings.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section class="stats-section">
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-text">Companies Using Our System</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50K+</div>
+                    <div class="stat-text">Employees Managed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-text">System Uptime</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-text">Customer Support</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="benefits-section">
+            <h2>Why Choose Our Payroll System?</h2>
+            <div class="benefits-grid">
+                
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Automated Calculations</h4>
+                    <p>Reduce manual errors with automated salary and tax calculations.</p>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Time-Saving</h4>
+                    <p>Process payroll 10x faster than traditional methods.</p>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Role-Based Access</h4>
+                    <p>Admin and user roles with different permission levels.</p>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Real-Time Analytics</h4>
+                    <p>Get instant insights into payroll data and trends.</p>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Data Security</h4>
+                    <p>Bank-grade encryption and secure data storage.</p>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <h4>Mobile Friendly</h4>
+                    <p>Access payroll system from any device, anytime, anywhere.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Call-to-Action Section -->
+        <section class="cta-section">
+            <h2>Ready to Get Started?</h2>
+            <p>Join hundreds of companies that trust our payroll system for efficient payroll management.</p>
+            {% if user.is_authenticated %}
+                <a href="#" class="btn btn-primary btn-large">Go to Dashboard</a>
+            {% else %}
+                <a href="{% url 'navigation_app:login' %}" class="btn btn-primary btn-large">Login to Your Account</a>
+            {% endif %}
+        </section>
+
+        <!-- Footer Info -->
+        <section class="footer-info">
+            <div class="footer-column">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">FAQs</a></li>
+                    <li><a href="#">Contact Support</a></li>
+                </ul>
+            </div>
+        </section>
+
+    </div>
+{% endblock content %}
+
+{% block extra_js %}
+    <script src="{% static 'js/home.js' %}"></script>
+{% endblock extra_js %}

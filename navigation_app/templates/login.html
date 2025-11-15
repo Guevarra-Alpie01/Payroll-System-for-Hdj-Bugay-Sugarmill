@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block title %}Login | Payroll System{% endblock title %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/login_design.css' %}">
+{% endblock extra_head %}
+
+
+
+{% block content %}
+    <div class="login-box">
+        <h2>Login</h2>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'navigation_app:login' %}">
+            {% csrf_token %}
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required>
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required>
+
+            <label for="role">Role</label>
+            <select id="role" name="role" required>
+                <option value="user" selected>User</option>
+                <option value="admin">Admin</option>
+                <option value="hr">HR</option>
+                <option value="timekeeper">Timekeeper</option>
+            </select>
+
+            <div>
+                <button class="btn" type="submit">Log in</button>
+            </div>
+        </form>
+    </div>
+
+    
+{% endblock content %}
