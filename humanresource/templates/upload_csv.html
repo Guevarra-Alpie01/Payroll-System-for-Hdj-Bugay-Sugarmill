@@ -27,30 +27,49 @@
 <hr>
 
 <div class="history-section">
-    <h3>🕒 Upload History</h3>
     {% if history %}
         <table>
-            <thead>
-                <tr>
-                    <th>Date/Time</th>
-                    <th>File Name</th>
-                    <th>Uploaded By</th>
-                    <th>Status</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
+       
             <tbody>
-            {% for item in history %}
-                <tr style="background-color: {% if item.status == 'Success' %}#e6ffe6{% else %}#ffe6e6{% endif %};">
-                    <td>{{ item.upload_time|date:"Y-m-d H:i" }}</td>
-                    <td>{{ item.file_name }}</td>
-                    <td>{{ item.uploaded_by }}</td>
+          
+            <div class="history-section">
+    <h3>🕒 Upload History</h3>
+    {% if history %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date/Time</th>
+                    <th>File Name</th>
+                    <th>Uploaded By</th>
+                    <th>Action</th>                 </tr>
+            </thead>
+            <tbody>
+            {% for item in history %}
+                <tr style="background-color: {% if item.status == 'Success' %}#e6ffe6{% else %}#ffe6e6{% endif %};">
+                    <td>{{ item.upload_time|date:"Y-m-d H:i" }}</td>
+                    <td>{{ item.file_name }}</td>
+                    <td>{{ item.uploaded_by }}</td>
+                    <td>
+                        
+                    </td>
+                   
+                    
                     <td>
-                        <strong>{{ item.status }}</strong>
+                        <form method="POST" action="{% url 'humanresource:payroll_delete' upload_id=item.id %}" onsubmit="return confirm('Are you sure you want to delete the payroll data for {{ item.file_name }}? This action is irreversible.');">
+                            {% csrf_token %}
+                            <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">Delete</button>
+                        </form>
                     </td>
-                    <td>{{ item.details|truncatechars:100 }}</td>
-                </tr>
-            {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No upload history found.</p>
+    {% endif %}
+</div>
+
+
             </tbody>
         </table>
     {% else %}

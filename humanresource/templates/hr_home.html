@@ -1,0 +1,38 @@
+{% extends 'base.html'%}
+
+{% load static %}
+{% block content %}
+{% load hr_filters %}
+<h2>🏠 HR Payroll Dashboard</h2>
+<p>Viewing aggregated data from **{{ successful_uploads|length }}** successful CSV uploads.</p>
+
+<div class="data-table-section" style="overflow-x: auto;">
+    {% if payroll_data %}
+        <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <caption style="text-align: left; font-weight: bold; margin-bottom: 10px;">Aggregated Payroll Data ({{ payroll_data|length }} Records)</caption>
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    {% for header in headers %}
+                        <th style="padding: 8px; border: 1px solid #ddd;">{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in payroll_data %}
+                    <tr>
+                        {% for header in headers %}
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                {# Display the value, or an empty string if the key doesn't exist in the row (e.g., if different CSVs had different columns) #}
+                                {{ row|get_item:header|default:"" }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No payroll data found from successful uploads.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

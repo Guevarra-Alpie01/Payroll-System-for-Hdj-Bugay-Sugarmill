@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from .models import UsersAccount
 from django.contrib import messages
 from django.db.models import Q # Import for more complex queries if needed
+from humanresource import views
 
 def login_view(request):
     """Handle login page display and plain text authentication."""
@@ -26,7 +27,7 @@ def login_view(request):
                 if account.role == 'admin':
                     return redirect('navigation_app:admin_home')
                 elif account.role == 'hr':
-                    return redirect('humanresource:payroll_upload')
+                    return redirect('humanresource:hr_home')
                 else:
                     return redirect('navigation_app:user_home')
             else:

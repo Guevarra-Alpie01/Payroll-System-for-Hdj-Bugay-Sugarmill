@@ -8,6 +8,7 @@ class CSVUploadHistory(models.Model):
     upload_time = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=50, default='Success') 
     details = models.TextField(blank=True, null=True)
+    processed_data_json = models.JSONField(default=list)
     
     class Meta:
         db_table = "CSVUploadHistory" 

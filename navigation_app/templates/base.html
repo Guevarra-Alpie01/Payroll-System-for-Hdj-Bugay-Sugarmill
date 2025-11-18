@@ -40,8 +40,8 @@
 
                     {# HR Navigation #}
                     {% elif request.session.role == 'hr' %}
-                        <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">HR Dashboard</a></li>
-                        <li><a href="#" class="nav-link">Employee Management</a></li>
+                        <li><a href="{% url 'humanresource:hr_home' %}" class="nav-link">HOME</a></li>
+                        <li><a href="{% url 'humanresource:payroll_upload' %}" class="nav-link">upload</a> </li>
                         <li><a href="#" class="nav-link">Leave Approvals</a></li>
                         <li><a href="#" class="nav-link">Payroll</a></li>
 
