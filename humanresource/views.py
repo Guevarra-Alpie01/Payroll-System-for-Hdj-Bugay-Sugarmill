@@ -14,7 +14,7 @@ def PayrollUploadView(request):
         if current_role and current_role != 'admin':
             return redirect('humanresource:payroll_upload')
         
-    uploader_username = request.session.get('username' 'HR User')
+    uploader_username = request.session.get('username' , 'hr')
 
     if request.method == 'POST':
         if 'payroll_file' not in request.FILES:
@@ -23,7 +23,7 @@ def PayrollUploadView(request):
 
         csv_file = request.FILES['payroll_file']
 
-        if not csv_file.name.endswith('.csv '): 
+        if not csv_file.name.endswith('.csv'): 
             messages.error(request,'FILE must be a csv')
             return redirect('humanresource:payroll_upload')
         
@@ -36,10 +36,8 @@ def PayrollUploadView(request):
 
             for row in reader:
                 # Process each row as needed
-                #processed_rows += 1
-                pass # Placeholder for actual processing logic
+                processed_rows += 1
             
-            processed_rows = sum(1 for row in reader)
             CSVUploadHistory.objects.create(
                 uploaded_by = uploader_username,
                 file_name = csv_file.name,
@@ -58,5 +56,5 @@ def PayrollUploadView(request):
             messages.error(request, f'Error processing file: {str(e)}')
         return redirect('humanresource:payroll_upload')
     
-    history = CSVUploadHistory.objects.all()[:20]
+    history = CSVUploadHistory.objects.all().order_by('-upload_time')[:20]
     return render(request, 'upload_csv.html', {'history': history})
