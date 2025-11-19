@@ -3,9 +3,9 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import CSVUploadHistory, PayrollRecord # Import the new model
 from io import TextIOWrapper
-from datetime import datetime # Needed for date parsing
 from django.db.models import Count # Needed for distinct name 
 from django.db import models
+from datetime import datetime, time, timedelta
 
 # Create your views here.
 def PayrollUploadView(request):
@@ -39,7 +39,7 @@ def PayrollUploadView(request):
             # 1. Create History Record immediately (to link payroll records)
             history_record = CSVUploadHistory.objects.create(
                 uploaded_by = uploader_username,
-                filename = uploaded_file.name,
+                file_name = uploaded_file.name, # <-- CORRECTED: file_name
             )
 
             # Skip header (lines[0])
@@ -50,11 +50,11 @@ def PayrollUploadView(request):
 
             for row in data_rows:
                 # Based on fixed-width columns (indices are 0-based)
-                # 9:19   = employee_id (char index 8 to 18, length 10)
-                # 20:34  = employee_name (char index 19 to 33, length 15)
-                # 36:37  = log_code (char index 35 to 36, length 2)
-                # 38:48  = date (char index 37 to 47, length 11) -> 2025/01/26
-                # 50:58  = time (char index 49 to 57, length 9) -> 07:45:00
+                # 9:19   = employee_id (char index 8 to 18, length 10)
+                # 20:34  = employee_name (char index 19 to 33, length 15)
+                # 36:37  = log_code (char index 35 to 36, length 2)
+                # 38:48  = date (char index 37 to 47, length 11) -> 2025/01/26
+                # 50:58  = time (char index 49 to 57, length 9) -> 07:45:00
                 
                 try:
                     # Clean up data by stripping whitespace/tabs caused by separators
@@ -68,7 +68,7 @@ def PayrollUploadView(request):
                     log_d = datetime.strptime(date_str, '%Y/%m/%d').date()
 
                     if emp_id and emp_name:
-                         records_to_create.append(PayrollRecord(
+                          records_to_create.append(PayrollRecord(
                             employee_id=emp_id,
                             employee_name=emp_name,
                             log_code=code,
@@ -76,15 +76,15 @@ def PayrollUploadView(request):
                             log_time=log_t,
                             upload_history=history_record
                         ))
-                         processed_rows += 1
+                          processed_rows += 1
 
                 except ValueError as ve:
                     # Log error but continue processing other rows
                     messages.warning(request, f"Skipped row due to data format error: {str(ve)}")
                     continue
                 except IndexError:
-                     messages.warning(request, f"Skipped row due to incorrect fixed-width format (row too short).")
-                     continue
+                    messages.warning(request, f"Skipped row due to incorrect fixed-width format (row too short).")
+                    continue
 
             # Bulk create records for efficiency
             if records_to_create:
@@ -132,7 +132,7 @@ def DeleteHistoryView(request, history_id):
     
     # 3. Perform deletion
     if request.method == 'POST':
-        file_name = history_record.filename
+        file_name = history_record.file_name # <-- CORRECTED: file_name
         history_record.delete()
         messages.success(request, f'History record for file "{file_name}" and associated payroll data deleted successfully.')
     else:
@@ -140,7 +140,7 @@ def DeleteHistoryView(request, history_id):
 
     return redirect('humanresource:payroll_upload')
 
-# humanresource/views.py (Add this function below DeleteHistoryView)
+# humanresource/views.py (EmployeeDetailsView function remains the same)
 
 def EmployeeDetailsView(request, employee_id):
     # Security check (ensure only HR can view)
@@ -150,54 +150,73 @@ def EmployeeDetailsView(request, employee_id):
         return redirect('homepage')
 
     # 1. Fetch all records for the employee, ordered by date and time
+    # Ordering by log_date and log_time is CRUCIAL for proper grouping and pairing.
     raw_logs = PayrollRecord.objects.filter(employee_id=employee_id).order_by('log_date', 'log_time')
     
     if not raw_logs:
         messages.warning(request, f"No payroll records found for Employee ID: {employee_id}")
         return redirect('humanresource:payroll_upload')
 
-    # Get the employee name for the title (it should be consistent)
     employee_name = raw_logs.first().employee_name
-
-    # 2. Process logs into structured daily entries
-    # Structure: { date: { 'date': date_obj, 'AM_IN': time, 'AM_OUT': time, ... } }
     daily_summary = {}
 
     CODE_MAP = {
-        '0': 'AM_IN',
-        '1': 'AM_OUT',
-        '2': 'PM_IN',
-        '3': 'PM_OUT',
-        '5': 'OT_IN',
-        '6': 'OT_OUT',
+        '0': 'AM_IN', '1': 'AM_OUT',
+        '2': 'PM_IN', '3': 'PM_OUT',
+        '5': 'OT_IN', '6': 'OT_OUT',
     }
     
-    # Initialize the date structures
+    # Step 2: Initialize and group logs (NO CHANGE HERE)
     for log in raw_logs:
         date_key = log.log_date.strftime('%Y-%m-%d')
         
         if date_key not in daily_summary:
             daily_summary[date_key] = {
                 'date': log.log_date,
-                'AM_IN': None,
-                'AM_OUT': None,
-                'PM_IN': None,
-                'PM_OUT': None,
-                'OT_IN': None,
-                'OT_OUT': None,
-                'raw_logs': [] # Optional: keep raw logs for detailed view
+                'AM_IN': None, 'AM_OUT': None,
+                'PM_IN': None, 'PM_OUT': None,
+                'OT_IN': None, 'OT_OUT': None,
+                'total_hours': timedelta(0), 
+                'raw_logs': []
             }
         
-        # Map the log code to the appropriate field and store the time
         log_type = CODE_MAP.get(log.log_code)
         
-        if log_type:
-            # We assume the data is already chronologically ordered by the ORM query
-            # So the first time found for a slot is the correct one (e.g., first AM_IN is the correct time)
-            if not daily_summary[date_key][log_type]:
-                 daily_summary[date_key][log_type] = log.log_time
+        # We store the first time found for the slot (the ORM order helps here)
+        if log_type and not daily_summary[date_key][log_type]:
+             daily_summary[date_key][log_type] = log.log_time
             
         daily_summary[date_key]['raw_logs'].append(log)
+
+    # --- 3. UPDATED CALCULATION LOGIC ---
+    for key, data in daily_summary.items():
+        total_delta = timedelta(0)
+        
+        # --- SCENARIO 1: Simple Day/After Shift (AM_IN, PM_OUT) ---
+        # If AM_OUT is missing but PM_IN is missing, treat AM_IN to PM_OUT as one span.
+        # This handles your example: "am in is 8:00 am, pm out is 4:00 pm"
+        if data.get('AM_IN') and data.get('PM_OUT') and not data.get('AM_OUT') and not data.get('PM_IN'):
+            # Calculate the total span (e.g., 8:00 to 16:00, subtract break later if needed)
+            shift_duration = calculate_hours(data.get('AM_IN'), data.get('PM_OUT'))
+            total_delta += shift_duration
+            
+        else:
+            # --- SCENARIO 2: Standard Shifts (Paired Logs) ---
+            # Calculate AM Hours (0 -> 1)
+            am_duration = calculate_hours(data.get('AM_IN'), data.get('AM_OUT'))
+            total_delta += am_duration
+            
+            # Calculate PM Hours (2 -> 3)
+            pm_duration = calculate_hours(data.get('PM_IN'), data.get('PM_OUT'))
+            total_delta += pm_duration
+        
+        # --- SCENARIO 3: Overtime/Graveyard Shifts (5 -> 6) ---
+        # OT calculation always applies
+        ot_duration = calculate_hours(data.get('OT_IN'), data.get('OT_OUT'))
+        total_delta += ot_duration
+        
+        # Store the total duration (timedelta object)
+        data['total_hours'] = total_delta
 
     # Convert the dictionary to a list and sort by date descending for display
     summary_list = sorted(daily_summary.values(), key=lambda x: x['date'], reverse=True)
@@ -209,3 +228,28 @@ def EmployeeDetailsView(request, employee_id):
     }
 
     return render(request, 'employee_details.html', context)
+
+def calculate_hours(time_in_str, time_out_str):
+    """
+    Calculates the time difference (timedelta) between two time strings ('HH:MM:SS').
+    Handles shifts that cross over midnight (time_out < time_in).
+    """
+    if not time_in_str or not time_out_str:
+        return timedelta(0)
+    
+    TIME_FORMAT = '%H:%M:%S'
+    try:
+        # 1. Convert time strings to datetime objects (using a dummy date)
+        dt_in = datetime.strptime(time_in_str, TIME_FORMAT)
+        dt_out = datetime.strptime(time_out_str, TIME_FORMAT)
+        
+        # 2. Check for Midnight Crossover (Graveyard Shift)
+        # If the OUT time is chronologically earlier than the IN time, 
+        # it means the OUT occurred on the next day.
+        if dt_out < dt_in:
+            dt_out += timedelta(days=1)  # Add 24 hours to the OUT time
+            
+        return dt_out - dt_in
+    except ValueError:
+        # Handles malformed time strings
+        return timedelta(0)
