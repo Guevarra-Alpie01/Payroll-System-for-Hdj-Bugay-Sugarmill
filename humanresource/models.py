@@ -3,8 +3,8 @@ from django.utils import timezone
 
 
 class CSVUploadHistory(models.Model):
-    uploaded_by = models.CharField(max_length=100, default='Admin')
-    filename = models.CharField(max_length=255)
+    uploaded_by = models.CharField(max_length=100, default='hr')
+    file_name = models.CharField(max_length=255)
     upload_time = models.DateTimeField(default=timezone.now)
     
     class Meta:

@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from .models import UsersAccount
 from django.contrib import messages
 from django.db.models import Q # Import for more complex queries if needed
+from humanresource import views
 
 def login_view(request):
     """Handle login page display and plain text authentication."""
