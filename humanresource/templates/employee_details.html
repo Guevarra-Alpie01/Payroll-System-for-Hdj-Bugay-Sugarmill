@@ -1,0 +1,93 @@
+{% extends 'base.html'%}
+{% load static %}
+{% block content %}
+
+<h2>📋 Time Logs for {{ employee_name }} (ID: {{ employee_id }})</h2>
+
+<p>
+    <a href="{% url 'humanresource:payroll_upload' %}" style="background-color: #6c757d; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+        ← Back to Uploads
+    </a>
+</p>
+
+<hr>
+
+<div class="time-log-summary">
+    <h3>Daily Time Record Summary</h3>
+    
+    {% if daily_summary %}
+        <table border="1" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th>Date</th>
+                    <th>AM In (Code 0)</th>
+                    <th>AM Out (Code 1)</th>
+                    <th>PM In (Code 2)</th>
+                    <th>PM Out (Code 3)</th>
+                    <th>OT In (Code 5)</th>
+                    <th>OT Out (Code 6)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in daily_summary %}
+                    <tr>
+                        <td><strong>{{ log.date|date:"Y-m-d (D)" }}</strong></td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.AM_IN %}
+                                {{ log.AM_IN }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.AM_OUT %}
+                                {{ log.AM_OUT }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.PM_IN %}
+                                {{ log.PM_IN }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.PM_OUT %}
+                                {{ log.PM_OUT }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.OT_IN %}
+                                {{ log.OT_IN }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {% if log.OT_OUT %}
+                                {{ log.OT_OUT }}
+                            {% else %}
+                                <span style="color: #ccc;">--</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No processed time logs available for this employee.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}
