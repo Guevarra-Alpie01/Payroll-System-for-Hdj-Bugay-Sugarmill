@@ -10,7 +10,7 @@
     {# Link to your main navigation design CSS #}
     <link rel="stylesheet" href="{% static 'css/navigation_design.css' %}">
     <link rel="stylesheet" href="{% static 'css/login_design.css' %}">
-  
+ 
     {% block extra_head %}{% endblock extra_head %}
 </head>
 <body>
@@ -23,10 +23,13 @@
                 </a> 
             </div>
             
+            {# 🛑 FIX: Changed condition to rely ONLY on account_id, which is set for all logged-in users #}
+            {% if request.session.account_id %}
             <div class="nav-links-container">
                 <ul class="nav-links nav-left">
                     {# Admin Navigation #}
-                    {% if request.session.admin_id %}
+                    {# 🛑 FIX: Changed condition to rely on role == 'admin' #}
+                    {% if request.session.role == 'admin' %}
                         <li><a href="{% url 'navigation_app:user_home' %}" class="nav-link">Dashboard</a></li>
                         <li><a href="{% url 'navigation_app:admin_home' %}" class="nav-link">Admin Panel</a></li>
                         <li><a href="{% url 'navigation_app:AddUser' %}" class="nav-link">Manage Users</a></li>
@@ -53,28 +56,26 @@
                 </ul>
 
                 <ul class="nav-links nav-right">
-                    {% if request.session.admin_id or request.session.account_id %}
-                        <li class="nav-item-user">
-                            <a href="#" class="nav-link">
-                                Welcome, {{ request.session.username }} 
-                                {% if request.session.admin_id %}
-                                    (Admin)
-                                {% elif request.session.role %}
-                                    ({{ request.session.role|title }})
-                                {% endif %}
-                            </a>
-                        </li>
-                        <li class="nav-item-auth">
-                            <a href="{% url 'navigation_app:logout' %}" class="nav-link">Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item-auth">
-                            <a href="{% url 'navigation_app:login' %}" class="nav-link">Login</a>
-                        </li>
-                    {% endif %}
+                    {# User Name and Role Display #}
+                    <li class="nav-item-user">
+                        <a href="#" class="nav-link">
+                            Welcome, {{ request.session.username }} 
+                            {# 🛑 FIX: Changed condition to rely on role #}
+                            {% if request.session.role == 'admin' %}
+                                (Admin)
+                            {% elif request.session.role %}
+                                ({{ request.session.role|title }})
+                            {% endif %}
+                        </a>
+                    </li>
+                    
+                    {# Logout Link #}
+                    <li class="nav-item-auth">
+                        <a href="{% url 'navigation_app:logout' %}" class="nav-link">Logout</a>
+                    </li>
                 </ul>
             </div>
-            
+            {% endif %}          
             <button class="nav-toggler" aria-label="Toggle navigation menu">
                 <span class="toggler-icon"></span>
                 <span class="toggler-icon"></span>

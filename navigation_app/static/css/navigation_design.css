@@ -1,5 +1,6 @@
-
-
+body{
+        padding-top:45px;
+}
 .main-nav ul {
     list-style: none;
     margin: 0;
@@ -17,6 +18,15 @@
     display: flex;
     justify-content: space-between; 
     align-items: center;
+    
+    /* FIXES FOR FULL WIDTH AND FIXED POSITION */
+    position: fixed; 
+    top: 0;
+    /* 👇 Ensure it spans from the left edge to the right edge */
+    left: 0; 
+    right: 0;
+    /* width: 100%; is redundant when left: 0; and right: 0; are used on fixed elements */
+    z-index: 1000; 
 }
 
 .nav-brand a {
@@ -89,8 +99,12 @@
         display: none;
         flex-direction: column;
         width: 100%;
-        position: absolute;
-        top: 50px;
+        /* Change position to 'fixed' on mobile for better behavior under fixed header */
+        position: fixed; 
+        
+        /* Dropdown starts immediately below the fixed header (which has 10px top/bottom padding) */
+        top: 50px; 
+        
         left: 0;
         background-color: #388E3C;
         z-index: 1000;

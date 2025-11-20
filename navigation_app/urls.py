@@ -6,8 +6,8 @@ app_name = 'navigation_app'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.Base, name="base"),
-    path('login/', views.login_view, name='login'),
+    path('', views.login_view, name='login'),
+    path('base/', views.Base, name="base"),
     path('logout/', views.logout_view, name='logout'),
 
 #Users Urls

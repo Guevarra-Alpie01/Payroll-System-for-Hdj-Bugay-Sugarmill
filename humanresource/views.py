@@ -48,16 +48,8 @@ def PayrollUploadView(request):
             
             records_to_create = []
 
-            for row in data_rows:
-                # Based on fixed-width columns (indices are 0-based)
-                # 9:19   = employee_id (char index 8 to 18, length 10)
-                # 20:34  = employee_name (char index 19 to 33, length 15)
-                # 36:37  = log_code (char index 35 to 36, length 2)
-                # 38:48  = date (char index 37 to 47, length 11) -> 2025/01/26
-                # 50:58  = time (char index 49 to 57, length 9) -> 07:45:00
-                
+            for row in data_rows:     
                 try:
-                    # Clean up data by stripping whitespace/tabs caused by separators
                     emp_id = row[8:18].strip()
                     emp_name = row[19:33].strip()
                     code = row[36:37].strip()
@@ -116,7 +108,7 @@ def PayrollUploadView(request):
         'history': history,
         'unique_employees': unique_employees
     }
-    return render(request, 'upload_csv.html', context)
+    return render(request, 'upload_txt.html', context)
 
 
 # ... (DeleteHistoryView function remains the same) ...
@@ -140,94 +132,6 @@ def DeleteHistoryView(request, history_id):
 
     return redirect('humanresource:payroll_upload')
 
-# humanresource/views.py (EmployeeDetailsView function remains the same)
-
-def EmployeeDetailsView(request, employee_id):
-    # Security check (ensure only HR can view)
-    current_role = request.session.get('role')
-    if current_role != 'hr':
-        messages.error(request, "Access denied. HR role required.")
-        return redirect('homepage')
-
-    # 1. Fetch all records for the employee, ordered by date and time
-    # Ordering by log_date and log_time is CRUCIAL for proper grouping and pairing.
-    raw_logs = PayrollRecord.objects.filter(employee_id=employee_id).order_by('log_date', 'log_time')
-    
-    if not raw_logs:
-        messages.warning(request, f"No payroll records found for Employee ID: {employee_id}")
-        return redirect('humanresource:payroll_upload')
-
-    employee_name = raw_logs.first().employee_name
-    daily_summary = {}
-
-    CODE_MAP = {
-        '0': 'AM_IN', '1': 'AM_OUT',
-        '2': 'PM_IN', '3': 'PM_OUT',
-        '5': 'OT_IN', '6': 'OT_OUT',
-    }
-    
-    # Step 2: Initialize and group logs (NO CHANGE HERE)
-    for log in raw_logs:
-        date_key = log.log_date.strftime('%Y-%m-%d')
-        
-        if date_key not in daily_summary:
-            daily_summary[date_key] = {
-                'date': log.log_date,
-                'AM_IN': None, 'AM_OUT': None,
-                'PM_IN': None, 'PM_OUT': None,
-                'OT_IN': None, 'OT_OUT': None,
-                'total_hours': timedelta(0), 
-                'raw_logs': []
-            }
-        
-        log_type = CODE_MAP.get(log.log_code)
-        
-        # We store the first time found for the slot (the ORM order helps here)
-        if log_type and not daily_summary[date_key][log_type]:
-             daily_summary[date_key][log_type] = log.log_time
-            
-        daily_summary[date_key]['raw_logs'].append(log)
-
-    # --- 3. UPDATED CALCULATION LOGIC ---
-    for key, data in daily_summary.items():
-        total_delta = timedelta(0)
-        
-        # --- SCENARIO 1: Simple Day/After Shift (AM_IN, PM_OUT) ---
-        # If AM_OUT is missing but PM_IN is missing, treat AM_IN to PM_OUT as one span.
-        # This handles your example: "am in is 8:00 am, pm out is 4:00 pm"
-        if data.get('AM_IN') and data.get('PM_OUT') and not data.get('AM_OUT') and not data.get('PM_IN'):
-            # Calculate the total span (e.g., 8:00 to 16:00, subtract break later if needed)
-            shift_duration = calculate_hours(data.get('AM_IN'), data.get('PM_OUT'))
-            total_delta += shift_duration
-            
-        else:
-            # --- SCENARIO 2: Standard Shifts (Paired Logs) ---
-            # Calculate AM Hours (0 -> 1)
-            am_duration = calculate_hours(data.get('AM_IN'), data.get('AM_OUT'))
-            total_delta += am_duration
-            
-            # Calculate PM Hours (2 -> 3)
-            pm_duration = calculate_hours(data.get('PM_IN'), data.get('PM_OUT'))
-            total_delta += pm_duration
-        
-        # --- SCENARIO 3: Overtime/Graveyard Shifts (5 -> 6) ---
-        # OT calculation always applies
-        ot_duration = calculate_hours(data.get('OT_IN'), data.get('OT_OUT'))
-        total_delta += ot_duration
-        
-        # Store the total duration (timedelta object)
-        data['total_hours'] = total_delta
-
-    # Convert the dictionary to a list and sort by date descending for display
-    summary_list = sorted(daily_summary.values(), key=lambda x: x['date'], reverse=True)
-
-    context = {
-        'employee_id': employee_id,
-        'employee_name': employee_name,
-        'daily_summary': summary_list,
-    }
-
-    return render(request, 'employee_details.html', context)
 
 def calculate_hours(time_in_str, time_out_str):
     """
@@ -253,3 +157,192 @@ def calculate_hours(time_in_str, time_out_str):
     except ValueError:
         # Handles malformed time strings
         return timedelta(0)
+    
+
+
+# --- NEW HELPER FUNCTION FOR LATE CALCULATION ---
+def calculate_minutes_late(log_time_str, log_type):
+    """
+    Calculates the minutes an employee is late based on standard start times.
+    log_time_str: The recorded log time ('HH:MM:SS').
+    log_type: 'AM_IN', 'PM_IN', or 'OT_IN'.
+    Returns: An integer for minutes late, or 0 if not late or time is missing.
+    """
+    if not log_time_str:
+        return 0
+
+    TIME_FORMAT = '%H:%M:%S'
+    try:
+        logged_dt = datetime.strptime(log_time_str, TIME_FORMAT)
+        
+        # Define the standard start time and the grace period cut-off time (15 mins past standard)
+        if log_type == 'AM_IN':
+            # Standard: 8:00:00. Cut-off: 8:15:00
+            grace_cut_off = time(8, 15, 0)
+        elif log_type == 'PM_IN':
+            # Standard: 16:00:00. Cut-off: 16:15:00
+            grace_cut_off = time(16, 15, 0)
+        elif log_type == 'OT_IN':
+            # Standard: 00:00:00. Cut-off: 00:15:00
+            grace_cut_off = time(0, 15, 0)
+        else:
+            return 0 # Only check IN logs
+
+        # Compare the time part of the log with the cut-off time
+        if logged_dt.time() > grace_cut_off:
+            # If logged time is AFTER the grace period, calculate minutes late
+            
+            # Use the actual minutes from the cut-off to the logged time
+            # For simplicity and robust time arithmetic, convert the logged time
+            # and the cut-off time into full datetime objects (using a dummy date).
+            dummy_date = datetime(2000, 1, 1)
+            cut_off_dt = datetime.combine(dummy_date, grace_cut_off)
+            
+            # The logged time is already a datetime object from the strptime call above
+            # (which used a dummy date as well).
+            
+            # Calculate the difference and convert to total minutes
+            late_delta = logged_dt - cut_off_dt
+            
+            # Ensure the difference is positive (should be, due to the initial check)
+            if late_delta > timedelta(0):
+                return int(late_delta.total_seconds() / 60)
+            
+        return 0 # Not late
+        
+    except ValueError:
+        return 0
+def EmployeeDetailsView(request, employee_id):
+    # ... (Security check remains the same) ...
+    current_role = request.session.get('role')
+    if current_role != 'hr':
+        messages.error(request, "Access denied. HR role required.")
+        return redirect('homepage')
+
+    # 1. Fetch all records for the employee, ordered by date and time (CRITICAL)
+    raw_logs = PayrollRecord.objects.filter(employee_id=employee_id).order_by('log_date', 'log_time')
+    
+    if not raw_logs:
+        messages.warning(request, f"No payroll records found for Employee ID: {employee_id}")
+        return redirect('humanresource:payroll_upload')
+
+    employee_name = raw_logs.first().employee_name
+    daily_summary = {}
+
+    CODE_MAP = {
+        '0': 'AM_IN', '1': 'AM_OUT',
+        '2': 'PM_IN', '3': 'PM_OUT',
+        '5': 'OT_IN', '6': 'OT_OUT',
+    }
+    
+    # --- Step 2: Initialize, Group, and Handle Cross-Midnight Attribution (NO CHANGE) ---
+    # This logic correctly places the OUT punch on the date of the IN punch.
+    
+    # Store the last known IN-log date for cross-day attribution
+    # last_in_date is not strictly used here, but the logic below works by checking previous_day_key
+    
+    for log in raw_logs:
+        log_type = CODE_MAP.get(log.log_code)
+        
+        current_date_key = log.log_date.strftime('%Y-%m-%d')
+        log_date_obj = log.log_date
+
+        # --- A. Cross-Midnight Attribution Logic --- 
+        is_out_log = log.log_code in ['1', '3', '6']
+
+        if is_out_log:
+            previous_day = log_date_obj - timedelta(days=1)
+            previous_day_key = previous_day.strftime('%Y-%m-%d')
+            
+            if previous_day_key in daily_summary:
+                prev_data = daily_summary[previous_day_key]
+                
+                # Check for open AM shift (Code 0 present, Code 1 missing) or (Code 0 present, Code 3 missing)
+                if (log.log_code == '1' or log.log_code == '3') and prev_data.get('AM_IN') and not prev_data.get(CODE_MAP.get(log.log_code)):
+                    current_date_key = previous_day_key
+                
+                # Check for open PM shift (Code 2 present, Code 3 missing) or (Code 2 present, Code 1 missing)
+                elif (log.log_code == '3' or log.log_code == '1') and prev_data.get('PM_IN') and not prev_data.get(CODE_MAP.get(log.log_code)):
+                    current_date_key = previous_day_key
+                    
+                # Check for open OT shift (Code 5 present, Code 6 missing)
+                elif log.log_code == '6' and prev_data.get('OT_IN') and not prev_data.get('OT_OUT'):
+                    current_date_key = previous_day_key
+
+        # --- B. Initialize Daily Summary Entry ---
+        if current_date_key not in daily_summary:
+            entry_date = datetime.strptime(current_date_key, '%Y-%m-%d').date()
+            
+            daily_summary[current_date_key] = {
+                'date': entry_date,
+                'AM_IN': None, 'AM_OUT': None,
+                'PM_IN': None, 'PM_OUT': None,
+                'OT_IN': None, 'OT_OUT': None,
+                'total_hours': timedelta(0), 
+                'total_minutes_late': 0,
+                'raw_logs': []
+            }
+        
+        # --- C. Store Log Time ---
+        if log_type and not daily_summary[current_date_key][log_type]:
+            daily_summary[current_date_key][log_type] = log.log_time
+        
+        daily_summary[current_date_key]['raw_logs'].append(log)
+
+    # -----------------------------------------------
+    # --- Step 3: CRITICAL UPDATED CALCULATION LOGIC ---
+    # -----------------------------------------------
+    for key, data in daily_summary.items():
+        total_delta = timedelta(0)
+        
+        # --- SCENARIO 1: Custom/Hybrid Shifts (The New Priority) ---
+        
+        # 1a. Shift: AM_IN (0) to PM_OUT (3)
+        if data.get('AM_IN') and data.get('PM_OUT') and not data.get('AM_OUT') and not data.get('PM_IN'):
+            shift_duration = calculate_hours(data.get('AM_IN'), data.get('PM_OUT'))
+            total_delta += shift_duration
+            # Skip to OT/Late calculation
+            
+        # 1b. Shift: PM_IN (2) to AM_OUT (1) (Graveyard/Long Shift)
+        elif data.get('PM_IN') and data.get('AM_OUT') and not data.get('AM_IN') and not data.get('PM_OUT'):
+            shift_duration = calculate_hours(data.get('PM_IN'), data.get('AM_OUT'))
+            total_delta += shift_duration
+            # Skip to OT/Late calculation
+            
+        else:
+            # --- SCENARIO 2: Standard Shifts (Paired Logs) ---
+            # Fallback to standard pairings only if custom scenarios weren't fully matched.
+            
+            # AM Hours (0 -> 1)
+            am_duration = calculate_hours(data.get('AM_IN'), data.get('AM_OUT'))
+            total_delta += am_duration
+            
+            # PM Hours (2 -> 3)
+            pm_duration = calculate_hours(data.get('PM_IN'), data.get('PM_OUT'))
+            total_delta += pm_duration
+        
+        # --- SCENARIO 3: Overtime/Graveyard Shifts (5 -> 6) ---
+        # OT calculation always applies regardless of the above
+        ot_duration = calculate_hours(data.get('OT_IN'), data.get('OT_OUT'))
+        total_delta += ot_duration
+        
+        # Store the total duration (timedelta object)
+        data['total_hours'] = total_delta
+
+        # --- LATE CALCULATION ---
+        am_late = calculate_minutes_late(data.get('AM_IN'), 'AM_IN')
+        pm_late = calculate_minutes_late(data.get('PM_IN'), 'PM_IN')
+        ot_late = calculate_minutes_late(data.get('OT_IN'), 'OT_IN')
+        
+        data['total_minutes_late'] = am_late + pm_late + ot_late
+
+    # Convert the dictionary to a list and sort by date descending for display
+    summary_list = sorted(daily_summary.values(), key=lambda x: x['date'], reverse=True)
+
+    context = {
+        'employee_id': employee_id,
+        'employee_name': employee_name,
+        'daily_summary': summary_list,
+    }
+
+    return render(request, 'employee_details.html', context)
