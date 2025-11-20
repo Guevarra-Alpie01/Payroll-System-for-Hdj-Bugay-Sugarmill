@@ -65,6 +65,15 @@
 
 <div class="employee-list-section">
     <h3>👤 Processed Employees (Chronological Order)</h3>
+    
+    <form method="GET" action="{% url 'humanresource:search_employee'%}" style="margin-bottom: 15px;">
+        <input type="text" name="query" placeholder="Search by ID or Name" required 
+               style="padding: 5px; border: 1px solid #ccc; border-radius: 3px; width: 250px;">
+        <button type="submit" 
+                style="background-color: #28a745; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 3px;">
+            🔍 Search Employee
+        </button>
+    </form>
     {% if unique_employees %}
         <table>
             <thead>

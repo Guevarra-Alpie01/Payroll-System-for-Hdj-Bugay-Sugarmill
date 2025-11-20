@@ -346,3 +346,19 @@ def EmployeeDetailsView(request, employee_id):
     }
 
     return render(request, 'employee_details.html', context)
+
+
+def search_employee(request):
+    query = request.GET.get('query')
+    employees = []
+    if query:
+        # Search by Employee ID (exact match) OR Employee Name (case-insensitive contains)
+        employees = PayrollRecord.objects.filter(
+            Q(employee_id__iexact=query) | Q(employee_name__icontains=query)
+        ).order_by('employee_name')
+
+    context = {
+        'query': query,
+        'employees': employees
+    }
+    return render(request, 'search_employee.html', context)

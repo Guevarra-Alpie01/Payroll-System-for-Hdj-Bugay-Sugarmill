@@ -9,5 +9,6 @@ urlpatterns = [
     path('payroll-upload/', views.PayrollUploadView, name='payroll_upload'),
     path('payroll-upload/delete/<int:history_id>/', views.DeleteHistoryView, name='delete_history'), 
     path('employee-details/<str:employee_id>/', views.EmployeeDetailsView, name='view_employee_details'),
+    path('search_employee/', views.search_employee, name='search_employee'),
 
 ]

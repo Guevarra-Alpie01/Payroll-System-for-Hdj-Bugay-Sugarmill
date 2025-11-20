@@ -1,0 +1,41 @@
+{% extends 'base.html'%}
+{% block content %}
+
+<h2>🔎 Employee Search Results for "{{ query }}"</h2>
+
+{% if employees %}
+    <p>Found **{{ employees|length }}** matching employee(s).</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Employee Name</th>
+                <th>Employee ID</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+                <tr>
+                    <td><strong>{{ employee.employee_name }}</strong></td>
+                    <td>{{ employee.employee_id }}</td>
+                    <td>
+                        <a href="{% url 'humanresource:view_employee_details' employee.employee_id %}" 
+                           style="background-color: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+                            View All Logs
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No employees found matching the search term "{{ query }}".</p>
+{% endif %}
+
+<p style="margin-top: 20px;">
+    <a href="{% url 'humanresource:payroll_upload' %}" style="text-decoration: none; color: #007bff;">
+        ← Back to Payroll Uploader
+    </a>
+</p>
+
+{% endblock %}
