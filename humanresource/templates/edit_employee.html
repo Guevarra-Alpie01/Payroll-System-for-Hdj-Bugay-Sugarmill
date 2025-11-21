@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Styling for the form (Match your add_employee.html CSS) */
+    .edit-employee-section {
+        max-width: 600px;
+        margin: 30px auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .edit-employee-section h3 {
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    /* Styling for the disabled/read-only Employee ID field */
+    #employee_id:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+    .form-actions {
+        text-align: right;
+        padding-top: 15px;
+    }
+    .form-actions button {
+        background-color: #007bff; /* Blue for Update/Edit */
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+    }
+    .form-actions button:hover {
+        background-color: #0056b3;
+    }
+</style>
+
+<div class="edit-employee-section">
+    {% if is_existing %}
+        <h3>✏️ Edit Employee Details: {{ employee.get_full_name }}</h3>
+    {% else %}
+        <h3>➕ Finalize New Employee: {{ employee.get_full_name }}</h3>
+        <p style="color: red; font-weight: bold;">Note: This employee record does not yet exist. Saving the form will create it.</p>
+    {% endif %}
+    
+    <form method="POST" action="{% url 'humanresource:edit_employee' employee.employee_id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="employee_id">Employee ID</label>
+            <input type="number" id="employee_id" value="{{ employee.employee_id }}" disabled>
+        </div>
+
+        <div class="form-group">
+            <label for="first_name">First Name (Required)</label>
+            <input type="text" id="first_name" name="first_name" value="{{ employee.first_name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="middle_name">Middle Name</label>
+            <input type="text" id="middle_name" name="middle_name" value="{{ employee.middle_name|default:'' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="last_name">Last Name (Required)</label>
+            <input type="text" id="last_name" name="last_name" value="{{ employee.last_name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="department">Department (Required)</label>
+            <select id="department" name="department" required>
+                <option value="">-- Select Department --</option>
+                <option value="IT" {% if employee.department == 'IT' %}selected{% endif %}>Information Technology</option>
+                <option value="HR" {% if employee.department == 'HR' %}selected{% endif %}>Human Resources</option>
+                <option value="Finance" {% if employee.department == 'Finance' %}selected{% endif %}>Finance</option>
+                <option value="Sales" {% if employee.department == 'Sales' %}selected{% endif %}>Sales</option>
+                <option value="Marketing" {% if employee.department == 'Marketing' %}selected{% endif %}>Marketing</option>
+                </select>
+        </div>
+
+        <div class="form-actions">
+            {% if is_existing %}
+                <button type="submit">🔄 Update Employee</button>
+            {% else %}
+                <button type="submit">💾 Create Employee Record</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% endblock content %}

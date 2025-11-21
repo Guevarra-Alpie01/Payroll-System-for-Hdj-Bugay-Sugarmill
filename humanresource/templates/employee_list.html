@@ -1,0 +1,73 @@
+{% extends 'base.html'%}
+{% load static %}
+{% block content %}
+<style>
+    /* Basic styling for the new image column */
+    .employee-list-section table td img {
+        width: 40px; /* Adjust size as needed */
+        height: 40px; /* Adjust size as needed */
+        border-radius: 50%; /* Makes the image circular */
+        object-fit: cover;
+        vertical-align: middle;
+        margin-right: 10px;
+        /* Add a pointer cursor to indicate it's clickable */
+        cursor: pointer; 
+    }
+</style>
+<div> 
+    <h2>👥 Employee Management</h2>
+    <p>
+        <a href="{% url 'humanresource:add_employee' %}" 
+           style="background-color: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+            ➕ Add New Employee
+        </a>
+    </p>
+</div>
+<div class="employee-list-section">
+    <h3>👤 Processed Employees (Chronological Order)</h3>
+    
+    <form method="GET" action="{% url 'humanresource:search_employee'%}" class="employee-search-form">
+        <input type="text" name="query" placeholder="Search by ID or Name" required 
+               class="search-input">
+        <button type="submit" class="search-button">
+            🔍 Search Employee
+        </button>
+    </form>
+    
+    {% if unique_employees %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Profile</th>
+                    <th>Employee_BioName</th>
+                    <th>Employee ID</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in unique_employees %}
+                    <tr>
+                        <td class="profile-cell">
+                            <a href="{% url 'humanresource:edit_employee' employee.employee_id %}" 
+                               title="Click to view/edit {{ employee.employee_name }}'s details">
+                                <img src="{% static 'image/default_user.jpg' %}" alt="{{ employee.employee_name }}'s Profile" class="profile-image">
+                            </a>
+                        </td>
+                        <td><strong>{{ employee.employee_name }}</strong></td>
+                        <td>{{ employee.employee_id }}</td>
+                        <td>
+                            <a href="{% url 'humanresource:view_employee_details' employee.employee_id %}" 
+                               class="view-logs-link">
+                                View All Logs
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No employee records have been processed yet.</p>
+    {% endif %}
+</div>
+
+{% endblock content %}

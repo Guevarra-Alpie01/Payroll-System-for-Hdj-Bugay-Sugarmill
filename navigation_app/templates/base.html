@@ -44,7 +44,7 @@
                     {# HR Navigation #}
                     {% elif request.session.role == 'hr' %}
                         <li><a href="{% url 'humanresource:payroll_upload' %}" class="nav-link">Payroll Upload</a></li>
-                        <li><a href="#" class="nav-link">Employee Management</a></li>
+                        <li><a href="{% url 'humanresource:employee_list' %}" class="nav-link">Employee Management</a></li>
 
                     {# Timekeeper Navigation #}
                     {% elif request.session.role == 'timekeeper' %}

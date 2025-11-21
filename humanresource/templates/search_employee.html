@@ -1,10 +1,14 @@
 {% extends 'base.html'%}
 {% block content %}
 
-<h2>🔎 Employee Search Results for "{{ query }}"</h2>
+<p>
+    <a href="{% url 'humanresource:payroll_upload' %}" style="text-decoration: none; color: #007bff;">
+        ← back
+    </a>
+</p>
 
-{% if employees %}
-    <p>Found **{{ employees|length }}** matching employee(s).</p>
+{% if unique_employees %}
+    <p>Found {{ unique_employees|length }} Employees</p>
     <table>
         <thead>
             <tr>
@@ -14,7 +18,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for employee in employees %}
+            {% for employee in unique_employees %}
                 <tr>
                     <td><strong>{{ employee.employee_name }}</strong></td>
                     <td>{{ employee.employee_id }}</td>
@@ -29,13 +33,7 @@
         </tbody>
     </table>
 {% else %}
-    <p>No employees found matching the search term "{{ query }}".</p>
+    <p>No unique employees found matching the search term "**{{ query }}**". Please try a different query.</p>
 {% endif %}
-
-<p style="margin-top: 20px;">
-    <a href="{% url 'humanresource:payroll_upload' %}" style="text-decoration: none; color: #007bff;">
-        ← Back to Payroll Uploader
-    </a>
-</p>
 
 {% endblock %}

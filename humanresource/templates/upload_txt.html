@@ -2,6 +2,34 @@
 {% load static %}
 {% block content %}
 
+<style>
+    /* Add basic styling to initially hide the history block */
+    #history-content {
+        display: none;
+        margin-top: 15px; /* Add some spacing above the table/message */
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    
+    /* Style for the toggle button */
+    #toggle-history-btn {
+        background-color: #6c757d; /* Grey button */
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+
+    #toggle-history-btn:hover {
+        background-color: #5a6268;
+    }
+</style>
+
 <h2>📂 Payroll TXT Uploader</h2>
 
 {% for message in messages %}
@@ -27,80 +55,50 @@
 <hr>
 
 <div class="history-section">
-    <h3>🕒 Upload History</h3>
-    {% if history %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Date/Time</th>
-                    <th>File Name</th>
-                    <th>Uploaded By</th>
-                    <th>Action</th> 
-                </tr>
-            </thead>
-            <tbody>
-            {% for item in history %}
-                <tr>
-                    <td>{{ item.upload_time|date:"Y-m-d H:i" }}</td>
-                    <td>{{ item.filename }}</td>
-                    <td>{{ item.uploaded_by }}</td>
-                    <td>
-                        <form method="POST" action="{% url 'humanresource:delete_history' item.id %}" onsubmit="return confirm('Are you sure you want to delete the history for {{ item.filename }}? (This also deletes all associated payroll data!)');">
-                            {% csrf_token %}
-                            <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">
-                                🗑️ Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No upload history found.</p>
-    {% endif %}
-</div>
+    <button id="toggle-history-btn" aria-expanded="false" aria-controls="history-content">
+        ➕ Show Upload History
+    </button>
+    
 
+    <div id="history-content">
+        <h3>🕒 Upload History</h3>
+        {% if history %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>File Name</th>
+                        <th>Uploaded By</th>
+                        <th>Action</th> 
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in history %}
+                    <tr>
+                        <td>{{ item.upload_time|date:"Y-m-d H:i" }}</td>
+                        <td>{{ item.filename }}</td>
+                        <td>{{ item.uploaded_by }}</td>
+                        <td>
+                            <form method="POST" action="{% url 'humanresource:delete_history' item.id %}" onsubmit="return confirm('Are you sure you want to delete the history for {{ item.filename }}? (This also deletes all associated payroll data!)');">
+                                {% csrf_token %}
+                                <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No upload history found.</p>
+        {% endif %}
+    </div>
+</div>
+<script src="{% static 'js/upload_txt.js' %}"></script>
 <hr>
 
-<div class="employee-list-section">
-    <h3>👤 Processed Employees (Chronological Order)</h3>
-    
-    <form method="GET" action="{% url 'humanresource:search_employee'%}" style="margin-bottom: 15px;">
-        <input type="text" name="query" placeholder="Search by ID or Name" required 
-               style="padding: 5px; border: 1px solid #ccc; border-radius: 3px; width: 250px;">
-        <button type="submit" 
-                style="background-color: #28a745; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 3px;">
-            🔍 Search Employee
-        </button>
-    </form>
-    {% if unique_employees %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Employee ID</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for employee in unique_employees %}
-                    <tr>
-                        <td><strong>{{ employee.employee_name }}</strong></td>
-                        <td>{{ employee.employee_id }}</td>
-                        <td>
-                            <a href="{% url 'humanresource:view_employee_details' employee.employee_id %}" 
-                               style="background-color: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
-                                View All Logs
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No employee records have been processed yet.</p>
-    {% endif %}
-</div>
+
+
 
 {% endblock %}

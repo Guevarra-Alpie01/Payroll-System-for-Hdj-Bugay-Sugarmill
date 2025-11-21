@@ -1,11 +1,12 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
-from .models import CSVUploadHistory, PayrollRecord # Import the new model
+from .models import CSVUploadHistory, PayrollRecord, Employee # Import the new model
 from io import TextIOWrapper
 from django.db.models import Count # Needed for distinct name 
 from django.db import models
 from datetime import datetime, time, timedelta
+from django.http import JsonResponse
 
 # Create your views here.
 def PayrollUploadView(request):
@@ -85,48 +86,37 @@ def PayrollUploadView(request):
             messages.success(request, f'File "{uploaded_file.name}" uploaded successfully. Processed {processed_rows} data entries.')
 
         except Exception as e:
-            # Handle general exceptions
             messages.error(request, f'Error processing file: {str(e)}')
             # Cleanup history if created but failed
             if 'history_record' in locals():
-                history_record.delete()
-        
+                history_record.delete()    
         return redirect('humanresource:payroll_upload')
     
     # GET Request: Display upload history
     history = CSVUploadHistory.objects.order_by('-upload_time')[:20]
-    
-    # NEW LOGIC: Get unique employees and their first log date
-    # Annotate to get the first (oldest) log date for each unique employee
-    unique_employees = PayrollRecord.objects.values(
-        'employee_name', 'employee_id'
-    ).annotate(
-        first_log=models.Min('log_date')
-    ).order_by('first_log') # Order chronologically by the first log date
+
+   
     
     context = {
         'history': history,
-        'unique_employees': unique_employees
     }
     return render(request, 'upload_txt.html', context)
 
 
-# ... (DeleteHistoryView function remains the same) ...
 def DeleteHistoryView(request, history_id):
-    # 1. Role Check (important for security)
     current_role = request.session.get('role')
     if current_role != 'hr':
         messages.error(request, "Access denied. HR role required for deletion.")
         return redirect('homepage')
         
-    # 2. Get the object or return 404. Deleting history record cascades to PayrollRecords.
+    #Deleting history record cascades to PayrollRecords.
     history_record = get_object_or_404(CSVUploadHistory, id=history_id)
     
-    # 3. Perform deletion
+    #Perform deletion
     if request.method == 'POST':
-        file_name = history_record.file_name # <-- CORRECTED: file_name
+        file_name = history_record.file_name
         history_record.delete()
-        messages.success(request, f'History record for file "{file_name}" and associated payroll data deleted successfully.')
+        messages.success(request, f'History record for file "{file_name}"  deleted successfully.')
     else:
         messages.error(request, 'Invalid request method for deletion.')
 
@@ -143,11 +133,11 @@ def calculate_hours(time_in_str, time_out_str):
     
     TIME_FORMAT = '%H:%M:%S'
     try:
-        # 1. Convert time strings to datetime objects (using a dummy date)
+        # Convert time strings to datetime objects (using a dummy date)
         dt_in = datetime.strptime(time_in_str, TIME_FORMAT)
         dt_out = datetime.strptime(time_out_str, TIME_FORMAT)
         
-        # 2. Check for Midnight Crossover (Graveyard Shift)
+        # Check for Midnight Crossover (Graveyard Shift)
         # If the OUT time is chronologically earlier than the IN time, 
         # it means the OUT occurred on the next day.
         if dt_out < dt_in:
@@ -162,12 +152,6 @@ def calculate_hours(time_in_str, time_out_str):
 
 # --- NEW HELPER FUNCTION FOR LATE CALCULATION ---
 def calculate_minutes_late(log_time_str, log_type):
-    """
-    Calculates the minutes an employee is late based on standard start times.
-    log_time_str: The recorded log time ('HH:MM:SS').
-    log_type: 'AM_IN', 'PM_IN', or 'OT_IN'.
-    Returns: An integer for minutes late, or 0 if not late or time is missing.
-    """
     if not log_time_str:
         return 0
 
@@ -212,6 +196,7 @@ def calculate_minutes_late(log_time_str, log_type):
         
     except ValueError:
         return 0
+    
 def EmployeeDetailsView(request, employee_id):
     # ... (Security check remains the same) ...
     current_role = request.session.get('role')
@@ -235,12 +220,7 @@ def EmployeeDetailsView(request, employee_id):
         '5': 'OT_IN', '6': 'OT_OUT',
     }
     
-    # --- Step 2: Initialize, Group, and Handle Cross-Midnight Attribution (NO CHANGE) ---
-    # This logic correctly places the OUT punch on the date of the IN punch.
-    
-    # Store the last known IN-log date for cross-day attribution
-    # last_in_date is not strictly used here, but the logic below works by checking previous_day_key
-    
+    # --- Step 2: Initialize, Group, and Handle Cross-Midnight Attribution ---
     for log in raw_logs:
         log_type = CODE_MAP.get(log.log_code)
         
@@ -257,19 +237,19 @@ def EmployeeDetailsView(request, employee_id):
             if previous_day_key in daily_summary:
                 prev_data = daily_summary[previous_day_key]
                 
-                # Check for open AM shift (Code 0 present, Code 1 missing) or (Code 0 present, Code 3 missing)
+                # Check for open AM shift
                 if (log.log_code == '1' or log.log_code == '3') and prev_data.get('AM_IN') and not prev_data.get(CODE_MAP.get(log.log_code)):
                     current_date_key = previous_day_key
                 
-                # Check for open PM shift (Code 2 present, Code 3 missing) or (Code 2 present, Code 1 missing)
+                # Check for open PM shift
                 elif (log.log_code == '3' or log.log_code == '1') and prev_data.get('PM_IN') and not prev_data.get(CODE_MAP.get(log.log_code)):
                     current_date_key = previous_day_key
                     
-                # Check for open OT shift (Code 5 present, Code 6 missing)
+                # Check for open OT shift 
                 elif log.log_code == '6' and prev_data.get('OT_IN') and not prev_data.get('OT_OUT'):
                     current_date_key = previous_day_key
 
-        # --- B. Initialize Daily Summary Entry ---
+        # --- B. Initialize Daily Summary Entry (ADDED SHIFT FIELDS) ---
         if current_date_key not in daily_summary:
             entry_date = datetime.strptime(current_date_key, '%Y-%m-%d').date()
             
@@ -279,8 +259,11 @@ def EmployeeDetailsView(request, employee_id):
                 'PM_IN': None, 'PM_OUT': None,
                 'OT_IN': None, 'OT_OUT': None,
                 'total_hours': timedelta(0), 
+                'day_shift_hours': timedelta(0),        # NEW FIELD
+                'night_shift_hours': timedelta(0),      # NEW FIELD
+                'graveyard_shift_hours': timedelta(0),  # NEW FIELD
                 'total_minutes_late': 0,
-                'raw_logs': []
+                'raw_logs': [] 
             }
         
         # --- C. Store Log Time ---
@@ -289,44 +272,46 @@ def EmployeeDetailsView(request, employee_id):
         
         daily_summary[current_date_key]['raw_logs'].append(log)
 
-    # -----------------------------------------------
-    # --- Step 3: CRITICAL UPDATED CALCULATION LOGIC ---
-    # -----------------------------------------------
     for key, data in daily_summary.items():
         total_delta = timedelta(0)
         
-        # --- SCENARIO 1: Custom/Hybrid Shifts (The New Priority) ---
+        # Initialize shift variables for calculation
+        day_shift_delta = timedelta(0)
+        night_shift_delta = timedelta(0)
+        graveyard_shift_delta = timedelta(0)
+        ot_delta = timedelta(0) 
+
+        # Track which logs have been used to prevent double-counting
+        used_logs = set()
         
-        # 1a. Shift: AM_IN (0) to PM_OUT (3)
-        if data.get('AM_IN') and data.get('PM_OUT') and not data.get('AM_OUT') and not data.get('PM_IN'):
-            shift_duration = calculate_hours(data.get('AM_IN'), data.get('PM_OUT'))
-            total_delta += shift_duration
-            # Skip to OT/Late calculation
-            
-        # 1b. Shift: PM_IN (2) to AM_OUT (1) (Graveyard/Long Shift)
-        elif data.get('PM_IN') and data.get('AM_OUT') and not data.get('AM_IN') and not data.get('PM_OUT'):
-            shift_duration = calculate_hours(data.get('PM_IN'), data.get('AM_OUT'))
-            total_delta += shift_duration
-            # Skip to OT/Late calculation
-            
-        else:
-            # --- SCENARIO 2: Standard Shifts (Paired Logs) ---
-            # Fallback to standard pairings only if custom scenarios weren't fully matched.
-            
-            # AM Hours (0 -> 1)
-            am_duration = calculate_hours(data.get('AM_IN'), data.get('AM_OUT'))
-            total_delta += am_duration
-            
-            # PM Hours (2 -> 3)
-            pm_duration = calculate_hours(data.get('PM_IN'), data.get('PM_OUT'))
-            total_delta += pm_duration
+        # 1. Day Shift: AM_IN (0) to PM_OUT (3)
+        if data.get('AM_IN') and data.get('PM_OUT'):
+             day_shift_delta = calculate_hours(data.get('AM_IN'), data.get('PM_OUT'))
+             used_logs.add('AM_IN')
+             used_logs.add('PM_OUT')
         
-        # --- SCENARIO 3: Overtime/Graveyard Shifts (5 -> 6) ---
-        # OT calculation always applies regardless of the above
-        ot_duration = calculate_hours(data.get('OT_IN'), data.get('OT_OUT'))
-        total_delta += ot_duration
+        # 2. Night Shift: PM_IN (2) to PM_OUT (3)
+        elif data.get('PM_IN') and data.get('PM_OUT'):
+            night_shift_delta = calculate_hours(data.get('PM_IN'), data.get('PM_OUT'))
+            used_logs.add('PM_IN')
+            used_logs.add('PM_OUT')
         
-        # Store the total duration (timedelta object)
+        # 3. Graveyard Shift (AM portion): AM_IN (0) to AM_OUT (1)
+        elif data.get('AM_IN') and data.get('AM_OUT'):
+            graveyard_shift_delta = calculate_hours(data.get('AM_IN'), data.get('AM_OUT'))
+            used_logs.add('AM_IN')
+            used_logs.add('AM_OUT')
+        
+        # --- Overtime (5 -> 6) ---
+        ot_delta = calculate_hours(data.get('OT_IN'), data.get('OT_OUT'))
+
+        # Store the breakdown in the dictionary
+        data['day_shift_hours'] = day_shift_delta
+        data['night_shift_hours'] = night_shift_delta
+        data['graveyard_shift_hours'] = graveyard_shift_delta
+        
+        # Calculate the GRAND TOTAL (Day + Night + Graveyard + OT)
+        total_delta = day_shift_delta + night_shift_delta + graveyard_shift_delta + ot_delta
         data['total_hours'] = total_delta
 
         # --- LATE CALCULATION ---
@@ -350,15 +335,168 @@ def EmployeeDetailsView(request, employee_id):
 
 def search_employee(request):
     query = request.GET.get('query')
-    employees = []
+    unique_employees = [] # Initialize list for safety
+    
     if query:
-        # Search by Employee ID (exact match) OR Employee Name (case-insensitive contains)
-        employees = PayrollRecord.objects.filter(
-            Q(employee_id__iexact=query) | Q(employee_name__icontains=query)
-        ).order_by('employee_name')
+        # Clean the query by removing leading/trailing whitespace
+        cleaned_query = query.strip() 
+        
+        # Filter the PayrollRecord model:
+        # 1. Use Q objects to search by ID OR Name.
+        # 2. Use __istartswith to prioritize records that begin with the query (case-insensitive).
+        # 3. Use .values() to select only the fields needed for the employee list.
+        # 4. Use .distinct() to get only unique employee/ID combinations.
+        matching_records = PayrollRecord.objects.filter(
+            Q(employee_id__istartswith=cleaned_query) | Q(employee_name__istartswith=cleaned_query)
+        ).values(
+            'employee_id', 
+            'employee_name'
+        ).distinct().order_by('employee_name')
+        
+        unique_employees = list(matching_records)
 
     context = {
         'query': query,
-        'employees': employees
+        'unique_employees': unique_employees # Pass the unique results to the template
     }
+    
+    # You will use a separate template (e.g., search_employee.html) to show the results
     return render(request, 'search_employee.html', context)
+
+def EmployeeListView(request):
+    current_role = request.session.get('role')
+    
+    if current_role != 'hr':
+        messages.error(request, "Access denied. HR role required.")
+        return redirect('homepage')
+        
+    #Get unique employees and their first log date
+    #Annotate to get the first (oldest) log date for each unique employee
+    unique_employees = PayrollRecord.objects.values(
+        'employee_name', 'employee_id'
+    ).annotate(
+        first_log=models.Min('log_date')
+    ).order_by('first_log') # Order chronologically by the first log date
+    
+    context = {
+        'unique_employees': unique_employees
+    }
+    return render(request, 'employee_list.html', context)
+
+#adding employee
+def add_employee(request):
+    if request.method == 'POST':
+        # 1. Get data from request.POST
+        employee_id = request.POST.get('employee_id')
+        first_name = request.POST.get('first_name')
+        # ... and so on for other fields
+
+        # 2. Save data to the database
+        Employee.objects.create(
+            employee_id=employee_id,
+            employee_name=f"{first_name} {request.POST.get('last_name')}",
+            # ... map other fields
+        )
+
+        # 3. Redirect the user after successful submission
+        return redirect('humanresource:employee_list') # Redirect to the employee list
+
+    # If it's a GET request, render the blank form
+    return render(request, 'add_employee.html')
+
+
+# ... (Your existing imports) ...
+from django.db.models import Min # Ensure Min is imported if not already
+
+# ... (Your existing helper functions and views) ...
+
+def edit_employee(request, employee_id):
+    current_role = request.session.get('role')
+    if current_role != 'hr':
+        messages.error(request, "Access denied. HR role required.")
+        return redirect('homepage')
+        
+    try:
+        # Scenario A: Employee record exists in the Employee table
+        employee = Employee.objects.get(employee_id=employee_id)
+        is_existing = True
+    except Employee.DoesNotExist:
+        # Scenario B: Employee record does NOT exist in the Employee table
+        # We need to pull the full name from the PayrollRecord table to pre-fill the name fields.
+        payroll_record = PayrollRecord.objects.filter(employee_id=employee_id).first()
+        
+        if not payroll_record:
+            messages.error(request, f"Employee ID {employee_id} not found in any payroll log.")
+            return redirect('humanresource:employee_list') # Redirect if ID is totally invalid
+
+        # Use the name from the PayrollRecord to initialize a *temporary* Employee object
+        # NOTE: This temporary object is NOT saved to the database yet.
+        full_name_from_payroll = payroll_record.employee_name.strip()
+        name_parts = full_name_from_payroll.split()
+        
+        # Simple parsing for name parts (might need robust logic in production)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[-1] if len(name_parts) > 1 else ''
+        middle_name = ' '.join(name_parts[1:-1]) if len(name_parts) > 2 else ''
+        
+        employee = Employee(
+            employee_id=employee_id,
+            first_name=first_name,
+            last_name=last_name,
+            middle_name=middle_name,
+            department='', # Default empty
+        )
+        is_existing = False
+
+    if request.method == 'POST':
+        # 3. Handle Form Submission (POST Request)
+        
+        # If it's a new employee (Scenario B), we use .create(). 
+        # If it's an existing employee (Scenario A), we use .save() on the fetched object.
+        
+        # If is_existing is False, we switch to using the add_employee logic (Employee.objects.create)
+        # However, to use the same form logic, let's update the fetched object and then save it.
+        # If it was temporary, employee.save() will create a new record since it has no primary key from the DB.
+        
+        employee.first_name = request.POST.get('first_name')
+        employee.middle_name = request.POST.get('middle_name')
+        employee.last_name = request.POST.get('last_name')
+        employee.department = request.POST.get('department')
+        
+        try:
+            # If the object was fetched from DB (is_existing=True), .save() updates the record.
+            # If the object was temporary (is_existing=False), we rely on the primary_key 
+            # (employee_id) being unique for creation, but it's safer to use .objects.create 
+            # for the first time.
+            
+            if not is_existing:
+                 # Ensure ID is Integer before creation, as per your model
+                Employee.objects.create(
+                    employee_id=int(employee_id), 
+                    first_name=employee.first_name,
+                    middle_name=employee.middle_name,
+                    last_name=employee.last_name,
+                    department=employee.department
+                )
+                action_msg = "created"
+            else:
+                # Update existing employee
+                employee.save()
+                action_msg = "updated"
+            
+            messages.success(request, f"Employee details for {employee.get_full_name()} successfully {action_msg}.")
+            
+            # Redirect back to the employee list after successful edit/creation
+            return redirect('humanresource:employee_list')
+
+        except Exception as e:
+            messages.error(request, f"An error occurred while saving employee data: {str(e)}")
+            # Fall through to re-render the form with error message
+            is_existing = False # Ensure the template knows to show it as a "creation" form
+
+    # 4. Handle Page Load (GET Request)
+    context = {
+        'employee': employee, # Pass the employee object (fetched or temporary)
+        'is_existing': is_existing # Tell the template if it's an existing record
+    }
+    return render(request, 'edit_employee.html', context)

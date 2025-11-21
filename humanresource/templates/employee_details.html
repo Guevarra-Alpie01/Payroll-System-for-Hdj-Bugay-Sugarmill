@@ -2,13 +2,14 @@
 {% load static %}
 {% block content %}
 
-<h2>📋 Time Logs for {{ employee_name }} (ID: {{ employee_id }})</h2>
+
 
 <p>
     <a href="{% url 'humanresource:payroll_upload' %}" style="background-color: #6c757d; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
-        ← Back to Uploads
+        ← Back
     </a>
 </p>
+<h2>📋 Time Logs for {{ employee_name }} (ID: {{ employee_id }})</h2>
 
 <hr>
 
@@ -20,76 +21,37 @@
             <thead>
                 <tr style="background-color: #f2f2f2;">
                     <th>Date</th>
-                    <th>AM In (Code 0)</th>
-                    <th>AM Out (Code 1)</th>
-                    <th>PM In (Code 2)</th>
-                    <th>PM Out (Code 3)</th>
-                    <th>OT In (Code 5)</th>
-                    <th>OT Out (Code 6)</th>
+                    <th>Day Shift (0->3)</th>
+                    <th>Night Shift (2->3)</th>
+                    <th>Graveyard Shift (0->1)</th>
                     <th>Total Work Hours</th> 
-                    <th style="color: red;">Total Late Minutes</th> </tr>
+                    <th>Total Late Minutes</th> 
+                </tr>
             </thead>
             <tbody>
                 {% for log in daily_summary %}
                     <tr>
                         <td><strong>{{ log.date|date:"Y-m-d (D)" }}</strong></td>
-                        
+
                         <td style="text-align: center;">
-                            {% if log.AM_IN %}
-                                {{ log.AM_IN }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            {% if log.AM_OUT %}
-                                {{ log.AM_OUT }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            {% if log.PM_IN %}
-                                {{ log.PM_IN }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            {% if log.PM_OUT %}
-                                {{ log.PM_OUT }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            {% if log.OT_IN %}
-                                {{ log.OT_IN }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            {% if log.OT_OUT %}
-                                {{ log.OT_OUT }}
-                            {% else %}
-                                <span style="color: #ccc;">--</span>
-                            {% endif %}
+                            {{ log.day_shift_hours|default:"0:00:00" }}
                         </td>
 
                         <td style="text-align: center;">
-                            <strong>{{ log.total_hours|default:"0:00:00" }}</strong>
+                            {{ log.night_shift_hours|default:"0:00:00" }}
+                        </td>
+                        
+                        <td style="text-align: center;">
+                            {{ log.graveyard_shift_hours|default:"0:00:00" }}
+                        </td>
+                        
+                        <td style="text-align: center; font-weight: bold;">
+                            {{ log.total_hours|default:"0:00:00" }}
                         </td>
                         
                         <td style="text-align: center; font-weight: bold; color: {% if log.total_minutes_late > 0 %}red {% else %} green {% endif %};">
                             {{ log.total_minutes_late }}
                         </td>
-                        
                     </tr>
                 {% endfor %}
             </tbody>
