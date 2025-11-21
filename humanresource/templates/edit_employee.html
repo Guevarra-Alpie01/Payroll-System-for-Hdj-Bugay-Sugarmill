@@ -1,11 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block content %}
 <style>
-    /* Styling for the form (Match your add_employee.html CSS) */
+    /* Styling for the main form container */
     .edit-employee-section {
-        max-width: 600px;
+        max-width: 1200px; /* Increased width to accommodate two columns */
         margin: 30px auto;
         padding: 20px;
         background-color: #f9f9f9;
@@ -17,8 +16,29 @@
         border-bottom: 2px solid #007bff;
         padding-bottom: 10px;
         margin-bottom: 20px;
-        text-align: center;
+        text-align: left; /* Aligned left for better flow */
+        grid-column: 1 / -1; /* Ensures h3 spans across both columns */
+        padding-top: 15px;
     }
+    
+    /* 1. New Two-Column Container for the form body */
+    .section-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Two equal columns */
+        gap: 20px; /* Space between the two column boxes */
+        margin-bottom: 20px;
+    }
+    
+    /* 2. Styling for individual content sections (the boxes) */
+    .section-box {
+        padding: 15px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Existing form group styles (kept for one-column field layout inside boxes) */
     .form-group {
         margin-bottom: 15px;
     }
@@ -30,6 +50,7 @@
     }
     .form-group input[type="text"],
     .form-group input[type="number"],
+    .form-group input[type="date"],
     .form-group select {
         width: 100%;
         padding: 10px;
@@ -38,16 +59,18 @@
         box-sizing: border-box;
     }
     /* Styling for the disabled/read-only Employee ID field */
-    #employee_id:disabled {
+    #employee_id:disabled, #original_bio_name:disabled {
         background-color: #e9ecef;
         cursor: not-allowed;
     }
     .form-actions {
         text-align: right;
-        padding-top: 15px;
+        padding-top: 20px;
+        grid-column: 1 / -1; /* Ensures buttons are centered/right-aligned below the columns */
+        border-top: 2px solid #eee;
     }
     .form-actions button {
-        background-color: #007bff; /* Blue for Update/Edit */
+        background-color: #007bff;
         color: white;
         border: none;
         padding: 10px 20px;
@@ -60,7 +83,6 @@
         background-color: #0056b3;
     }
 </style>
-
 <div class="edit-employee-section">
     {% if is_existing %}
         <h3>✏️ Edit Employee Details: {{ employee.get_full_name }}</h3>
@@ -69,42 +91,216 @@
         <p style="color: red; font-weight: bold;">Note: This employee record does not yet exist. Saving the form will create it.</p>
     {% endif %}
     
-    <form method="POST" action="{% url 'humanresource:edit_employee' employee.employee_id %}">
+    <form method="POST" action="{% url 'humanresource:edit_employee' employee_id %}">
         {% csrf_token %}
 
-        <div class="form-group">
-            <label for="employee_id">Employee ID</label>
-            <input type="number" id="employee_id" value="{{ employee.employee_id }}" disabled>
-        </div>
+        <div class="section-grid">
 
-        <div class="form-group">
-            <label for="first_name">First Name (Required)</label>
-            <input type="text" id="first_name" name="first_name" value="{{ employee.first_name }}" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="middle_name">Middle Name</label>
-            <input type="text" id="middle_name" name="middle_name" value="{{ employee.middle_name|default:'' }}">
-        </div>
-        
-        <div class="form-group">
-            <label for="last_name">Last Name (Required)</label>
-            <input type="text" id="last_name" name="last_name" value="{{ employee.last_name }}" required>
-        </div>
+            <div class="section-box">
+                <h3>🆔 Core & Name Information</h3>
+                <div class="form-group">
+                    <label for="employee_id">Employee ID</label>
+                    <input type="text" id="employee_id" value="{{ employee_id }}" disabled>
+                </div>
 
-        <div class="form-group">
-            <label for="department">Department (Required)</label>
-            <select id="department" name="department" required>
-                <option value="">-- Select Department --</option>
-                <option value="IT" {% if employee.department == 'IT' %}selected{% endif %}>Information Technology</option>
-                <option value="HR" {% if employee.department == 'HR' %}selected{% endif %}>Human Resources</option>
-                <option value="Finance" {% if employee.department == 'Finance' %}selected{% endif %}>Finance</option>
-                <option value="Sales" {% if employee.department == 'Sales' %}selected{% endif %}>Sales</option>
-                <option value="Marketing" {% if employee.department == 'Marketing' %}selected{% endif %}>Marketing</option>
-                </select>
-        </div>
+                <div class="form-group">
+                    <label for="original_bio_name">Original Bio Name (From Payroll Log)</label>
+                    <input type="text" id="original_bio_name" value="{{ original_bio_name }}" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="first_name">First Name (Required)</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ employee.first_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="middle_name">Middle Name</label>
+                    <input type="text" id="middle_name" name="middle_name" value="{{ employee.middle_name|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name (Required)</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ employee.last_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="extension_name">Extension Name (Jr., Sr.)</label>
+                    <input type="text" id="extension_name" name="extension_name" value="{{ employee.extension_name|default:'' }}">
+                </div>
+            </div>
 
-        <div class="form-actions">
+
+            <div class="section-box">
+                <h3>👤 Personal Details</h3>
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" name="address" value="{{ employee.address|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_no">Contact Number</label>
+                    <input type="text" id="contact_no" name="contact_no" value="{{ employee.contact_no|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="birthdate">Birthdate</label>
+                    <input type="date" id="birthdate" name="birthdate" value="{{ employee.birthdate|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" name="age" value="{{ employee.age|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="sex">Sex</label>
+                    <select id="sex" name="sex">
+                        <option value="">-- Select Sex --</option>
+                        <option value="Male" {% if employee.sex == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if employee.sex == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if employee.sex == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="civil_status">Civil Status</label>
+                    <select id="civil_status" name="civil_status">
+                        <option value="">-- Select Status --</option>
+                        <option value="Single" {% if employee.civil_status == 'Single' %}selected{% endif %}>Single</option>
+                        <option value="Married" {% if employee.civil_status == 'Married' %}selected{% endif %}>Married</option>
+                        <option value="Widowed" {% if employee.civil_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+                        <option value="Separated" {% if employee.civil_status == 'Separated' %}selected{% endif %}>Separated</option>
+                    </select>
+                </div>
+
+                <h3>🏛️ Government IDs</h3>
+                <div class="form-group">
+                    <label for="tin">TIN</label>
+                    <input type="text" id="tin" name="tin" value="{{ employee.tin|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="sss_no">SSS Number</label>
+                    <input type="text" id="sss_no" name="sss_no" value="{{ employee.sss_no|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="philhealth_no">PhilHealth No.</label>
+                    <input type="text" id="philhealth_no" name="philhealth_no" value="{{ employee.philhealth_no|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="pagibig_no">Pag-IBIG No.</label>
+                    <input type="text" id="pagibig_no" name="pagibig_no" value="{{ employee.pagibig_no|default:'' }}">
+                </div>
+            </div>
+            
+            <div class="section-box">
+                <h3>🏢 Employment & Payroll</h3>
+                <div class="form-group">
+                    <label for="department">Department (Required)</label>
+                    <select id="department" name="department" required>
+                        <option value="">-- Select Department --</option>
+                        <option value="IT" {% if employee.department == 'IT' %}selected{% endif %}>Information Technology</option>
+                        <option value="HR" {% if employee.department == 'HR' %}selected{% endif %}>Human Resources</option>
+                        <option value="Finance" {% if employee.department == 'Finance' %}selected{% endif %}>Finance</option>
+                        <option value="Sales" {% if employee.department == 'Sales' %}selected{% endif %}>Sales</option>
+                        <option value="Marketing" {% if employee.department == 'Marketing' %}selected{% endif %}>Marketing</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="section">Section</label>
+                    <input type="text" id="section" name="section" value="{{ employee.section|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="position">Position</label>
+                    <input type="text" id="position" name="position" value="{{ employee.position|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="classification">Classification</label>
+                    <input type="text" id="classification" name="classification" value="{{ employee.classification|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="date_hired">Date Hired</label>
+                    <input type="date" id="date_hired" name="date_hired" value="{{ employee.date_hired|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="Active" {% if employee.status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Terminated" {% if employee.status == 'Terminated' %}selected{% endif %}>Terminated</option>
+                        <option value="Retired" {% if employee.status == 'Retired' %}selected{% endif %}>Retired</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date_separated">Date Separated</label>
+                    <input type="date" id="date_separated" name="date_separated" value="{{ employee.date_separated|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="retirement_age">Retirement Age</label>
+                    <input type="number" id="retirement_age" name="retirement_age" value="{{ employee.retirement_age|default:'' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="monthly_daily_rate">Monthly/Daily Rate</label>
+                    <input type="number" step="0.01" id="monthly_daily_rate" name="monthly_daily_rate" value="{{ employee.monthly_daily_rate|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="hourly_rate">Hourly Rate</label>
+                    <input type="number" step="0.01" id="hourly_rate" name="hourly_rate" value="{{ employee.hourly_rate|default:'' }}">
+                </div>
+            </div>
+            
+            <div class="section-box">
+                <h3>🎓 Education & Professional</h3>
+                <div class="form-group">
+                    <label for="educ_attainment">Educational Attainment</label>
+                    <input type="text" id="educ_attainment" name="educ_attainment" value="{{ employee.educ_attainment|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="license_no">License No.</label>
+                    <input type="text" id="license_no" name="license_no" value="{{ employee.license_no|default:'' }}">
+                    <small class="form-text text-muted">Separate multiple licenses with a comma.</small>
+                </div>
+                <div class="form-group">
+                    <label for="profession_1">Profession 1</label>
+                    <input type="text" id="profession_1" name="profession_1" value="{{ employee.profession_1|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="profession_2">Profession 2</label>
+                    <input type="text" id="profession_2" name="profession_2" value="{{ employee.profession_2|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="profession_3">Profession 3</label>
+                    <input type="text" id="profession_3" name="profession_3" value="{{ employee.profession_3|default:'' }}">
+                </div>
+                
+                <h3>👨‍👩‍👧‍👦 Dependent Details</h3>
+                <div class="form-group">
+                    <label for="no_of_dependents">No. of Dependents</label>
+                    <input type="number" id="no_of_dependents" name="no_of_dependents" value="{{ employee.no_of_dependents|default:0 }}">
+                </div>
+                <div class="form-group">
+                    <label for="spouse_name">Spouse Name</label>
+                    <input type="text" id="spouse_name" name="spouse_name" value="{{ employee.spouse_name|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="spouse_birthdate">Spouse Birthdate</label>
+                    <input type="date" id="spouse_birthdate" name="spouse_birthdate" value="{{ employee.spouse_birthdate|date:'Y-m-d'|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="dependent_1">Dependent 1 Name</label>
+                    <input type="text" id="dependent_1" name="dependent_1" value="{{ employee.dependent_1|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="dependent_2">Dependent 2 Name</label>
+                    <input type="text" id="dependent_2" name="dependent_2" value="{{ employee.dependent_2|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="dependent_3">Dependent 3 Name</label>
+                    <input type="text" id="dependent_3" name="dependent_3" value="{{ employee.dependent_3|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="dependent_4">Dependent 4 Name</label>
+                    <input type="text" id="dependent_4" name="dependent_4" value="{{ employee.dependent_4|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="dependent_5">Dependent 5 Name</label>
+                    <input type="text" id="dependent_5" name="dependent_5" value="{{ employee.dependent_5|default:'' }}">
+                </div>
+            </div>
+
+        </div> <div class="form-actions">
             {% if is_existing %}
                 <button type="submit">🔄 Update Employee</button>
             {% else %}

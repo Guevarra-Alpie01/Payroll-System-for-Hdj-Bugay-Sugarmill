@@ -2,72 +2,250 @@
 {% load static %}
 {% block content %}
 <style>
-    /* Basic styling for the new image column */
+    /* ------------------- Global Container Styles ------------------- */
+    .employee-list-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* ------------------- Header & Button Styling ------------------- */
+    .header-and-button {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .header-and-button h2 {
+        color: #007bff;
+        font-size: 1.8em;
+        margin: 0;
+    }
+
+    .add-employee-link {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+        white-space: nowrap; /* Prevents wrapping on button text */
+    }
+
+    .add-employee-link:hover {
+        background-color: #218838;
+    }
+
+    /* ------------------- Search Form Styling ------------------- */
+    .employee-search-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .search-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1em;
+    }
+
+    .search-button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        font-weight: 500;
+    }
+
+    .search-button:hover {
+        background-color: #0056b3;
+    }
+
+    /* ------------------- Table and Layout Styling (Existing/Refined) ------------------- */
+    .employee-list-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.4em;
+    }
+    
+    .employee-list-section table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Added subtle shadow */
+        border-radius: 8px;
+        overflow: hidden; /* Ensures rounded corners clip table content */
+    }
+
+    .employee-list-section th,
+    .employee-list-section td {
+        border: 1px solid #e9ecef; /* Lighter border */
+        padding: 12px 15px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .employee-list-section th {
+        background-color: #e9ecef;
+        color: #495057;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85em;
+    }
+
+    .employee-list-section tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .employee-list-section tr:hover {
+        background-color: #e2f0ff; /* Highlight on hover for better user experience */
+        cursor: pointer;
+    }
+
+    /* ------------------- Profile Image Styling ------------------- */
     .employee-list-section table td img {
-        width: 40px; /* Adjust size as needed */
-        height: 40px; /* Adjust size as needed */
-        border-radius: 50%; /* Makes the image circular */
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%; 
         object-fit: cover;
         vertical-align: middle;
-        margin-right: 10px;
-        /* Add a pointer cursor to indicate it's clickable */
-        cursor: pointer; 
+        border: 2px solid #007bff;
+        transition: transform 0.2s ease;
     }
+    
+    .employee-list-section table tr:hover img {
+        transform: scale(1.05);
+    }
+
+    .profile-cell {
+        text-align: center;
+    }
+    
+    .employee-list-section td:nth-child(4) { /* Employee ID */
+        font-family: monospace;
+        text-align: center;
+        color: #dc3545; /* Highlight ID */
+    }
+
+    .employee-list-section td:nth-child(5) { /* Department */
+        text-align: center;
+        font-weight: 500;
+        color: #6c757d;
+    }
+    
+    .employee-list-section td:nth-child(6) { /* Action column */
+        text-align: center;
+        width: 150px;
+    }
+
+    .view-logs-link {
+        color: #17a2b8; /* Changed link color for distinction */
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 5px 8px;
+        border-radius: 3px;
+        transition: background-color 0.2s ease;
+    }
+
+    .view-logs-link:hover {
+        text-decoration: underline;
+        color: #0056b3;
+    }
+    
+    /* Style for 'Not Set' department */
+    .employee-list-section td:nth-child(5):contains('Not Set') {
+        color: #ffc107;
+        font-style: italic;
+    }
+
 </style>
-<div> 
-    <h2>👥 Employee Management</h2>
-    <p>
-        <a href="{% url 'humanresource:add_employee' %}" 
-           style="background-color: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
-            ➕ Add New Employee
-        </a>
-    </p>
-</div>
-<div class="employee-list-section">
-    <h3>👤 Processed Employees (Chronological Order)</h3>
-    
-    <form method="GET" action="{% url 'humanresource:search_employee'%}" class="employee-search-form">
-        <input type="text" name="query" placeholder="Search by ID or Name" required 
-               class="search-input">
-        <button type="submit" class="search-button">
-            🔍 Search Employee
-        </button>
-    </form>
-    
-    {% if unique_employees %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Profile</th>
-                    <th>Employee_BioName</th>
-                    <th>Employee ID</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for employee in unique_employees %}
+
+<div class="employee-list-container">
+  
+
+    <div class="employee-list-section">
+        <h3>👤 Processed Employees (Chronological Order)</h3>
+        
+        <form method="GET" action="{% url 'humanresource:search_employee'%}" class="employee-search-form">
+            <input type="text" name="query" placeholder="Search by ID or Name" required 
+                    class="search-input" value="{{ query|default:'' }}">
+            <button type="submit" class="search-button">
+                🔍 Search Employee
+            </button>
+        </form>
+        
+        {% if unique_employees %}
+            <table>
+                <thead>
                     <tr>
-                        <td class="profile-cell">
-                            <a href="{% url 'humanresource:edit_employee' employee.employee_id %}" 
-                               title="Click to view/edit {{ employee.employee_name }}'s details">
-                                <img src="{% static 'image/default_user.jpg' %}" alt="{{ employee.employee_name }}'s Profile" class="profile-image">
-                            </a>
-                        </td>
-                        <td><strong>{{ employee.employee_name }}</strong></td>
-                        <td>{{ employee.employee_id }}</td>
-                        <td>
-                            <a href="{% url 'humanresource:view_employee_details' employee.employee_id %}" 
-                               class="view-logs-link">
-                                View All Logs
-                            </a>
-                        </td>
+                        <th>Profile</th>
+                        <th>Bio Name (Payroll)</th>
+                        <th>Full Name (HR Edited)</th>
+                        <th>Employee ID</th>
+                        <th>Department</th>
+                        <th>Action</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No employee records have been processed yet.</p>
-    {% endif %}
+                </thead>
+                <tbody>
+                    {% for employee in unique_employees %}
+                        <tr>
+                            <td class="profile-cell">
+                                <a href="{% url 'humanresource:edit_employee' employee.employee_id %}" 
+                                   title="Click to view/edit {{ employee.get_list_name }}'s details">
+                                    <img src="{% static 'image/default_user.jpg' %}" alt="Profile Image" class="profile-image">
+                                </a>
+                            </td>
+                            <td><strong>{{ employee.employee_name }}</strong></td> 
+                            <td> {{ employee.get_list_name|default:'--- Edit to Set Name ---' }}</td>
+                            <td>{{ employee.employee_id }}</td>
+                            <td>
+                                {% if employee.department == 'Unclassified' %}
+                                    <span style="color: #dc3545; font-weight: bold;">{{ employee.department }}</span>
+                                {% else %}
+                                    {{ employee.department|default:'Not Set' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'humanresource:view_employee_details' employee.employee_id %}" 
+                                   class="view-logs-link">
+                                    View All Logs
+                                </a>
+                                |
+                                <a href="{% url 'humanresource:edit_employee' employee.employee_id %}" 
+                                   class="view-logs-link" 
+                                   style="color: #ffc107;">
+                                    Edit
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>
+                {% if query %}
+                    No employee records found matching "{{ query }}".
+                {% else %}
+                    No employee records have been processed yet.
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
 </div>
 
 {% endblock content %}
